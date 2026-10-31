@@ -25,11 +25,24 @@ type Config struct {
 	ZipFolders    bool   `json:"zip_folders"`
 	ReceiveFolder string `json:"receive_folder"` // empty = Downloads/<AppName>
 
+	// Hosting a relay for friends (Host tab).
+	HostPort       int    `json:"host_port,omitempty"`         // 0 = 9009
+	HostPassword   string `json:"host_password,omitempty"`     // kept so the connection code stays the same
+	HostNoAutoOpen bool   `json:"host_no_auto_open,omitempty"` // true = don't try UPnP / NAT-PMP
+
 	path string
 }
 
 // Path reports where the settings were loaded from or will be saved to.
 func (c *Config) Path() string { return c.path }
+
+// HostPortOrDefault returns the relay port to host on (default 9009).
+func (c *Config) HostPortOrDefault() int {
+	if c.HostPort > 0 {
+		return c.HostPort
+	}
+	return 9009
+}
 
 // DestinationOrDefault returns the configured receive folder or the default.
 func (c *Config) DestinationOrDefault() string {

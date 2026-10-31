@@ -14,7 +14,12 @@ import (
 	"github.com/troopers/transfer-service/config"
 )
 
-func newSettingsView(a *App) fyne.CanvasObject {
+type settingsView struct {
+	content fyne.CanvasObject
+	refresh func() // reload the relay fields after Connect changes them
+}
+
+func newSettingsView(a *App) *settingsView {
 	cfg := a.cfg
 
 	relay := widget.NewEntry()
@@ -73,12 +78,16 @@ func newSettingsView(a *App) fyne.CanvasObject {
 			return
 		}
 		a.recv.setDest(cfg.DestinationOrDefault())
+		if a.connect != nil {
+			a.connect.refresh()
+		}
 		showWhere()
 		dialog.ShowInformation("Saved", "Your settings were saved.", a.win)
 	})
 	save.Importance = widget.HighImportance
 
-	relayHelp := widget.NewLabel("Only change these if you run your own croc relay. Both computers must use the same relay and password.")
+	relayHelp := widget.NewLabel("Only change these if you run your own croc relay. Both computers must use the same relay and password. " +
+		"The Connect tab fills these in for you from a friend's connection code.")
 	relayHelp.Wrapping = fyne.TextWrapWord
 
 	form := widget.NewForm(
@@ -91,7 +100,7 @@ func newSettingsView(a *App) fyne.CanvasObject {
 	about := widget.NewLabel(config.AppName + " " + Version + " • built on croc (github.com/schollz/croc)")
 	about.Importance = widget.LowImportance
 
-	return container.NewPadded(container.NewVBox(
+	content := container.NewPadded(container.NewVBox(
 		widget.NewLabelWithStyle("Relay", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		relayHelp,
 		form,
@@ -100,4 +109,8 @@ func newSettingsView(a *App) fyne.CanvasObject {
 		where,
 		about,
 	))
+	return &settingsView{content: content, refresh: func() {
+		relay.SetText(cfg.RelayAddress)
+		pass.SetText(cfg.RelayPassword)
+	}}
 }

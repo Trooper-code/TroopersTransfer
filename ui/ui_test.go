@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
 
+	"github.com/troopers/transfer-service/relay"
 	"github.com/troopers/transfer-service/transfer"
 )
 
@@ -92,11 +94,104 @@ func TestScreens(t *testing.T) {
 	h.finish(e, transfer.Result{Code: "curry-salsa-blunt", Bytes: 3_212_000}, nil)
 	e = h.add(false, nil)
 	h.finish(e, transfer.Result{Code: "zebra-apple-mango"}, &transfer.FriendlyError{Message: "Connection lost, try again."})
-	a.tabs.SelectIndex(2)
+	a.tabs.SelectIndex(4)
 	shot("6-history")
 
-	a.tabs.SelectIndex(3)
+	a.tabs.SelectIndex(5)
 	shot("7-settings")
+}
+
+// TestHostAndConnect starts a real relay from the Host tab (the test machine
+// has no UPnP router, so the manual port-forwarding guide must appear), then
+// checks the Connect tab picks the relay up and syncs with Settings.
+func TestHostAndConnect(t *testing.T) {
+	cfgDir := t.TempDir()
+	t.Setenv("APPDATA", cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+
+	fa := test.NewApp()
+	defer fa.Quit()
+	fa.Settings().SetTheme(theme.DefaultTheme())
+	a := newApp(fa)
+	a.cfg.RelayAddress, a.cfg.RelayPassword = "", ""
+	a.connect.refresh()
+	a.win.Resize(fyne.NewSize(760, 760))
+	a.win.Show()
+	shot := screenshotter(t, a)
+
+	a.tabs.SelectIndex(2)
+	shot("8-host-idle")
+
+	a.hostView.port.SetText("29109")
+	a.hostView.autoOpen.SetChecked(true)
+	test.Tap(a.hostView.startBtn)
+	waitForLong(t, func() bool { return a.host != nil })
+	defer a.stopHosting()
+	shot("9-host-problem")
+
+	st := a.host.Status()
+	if st.Problem == nil || st.Problem.Kind != relay.ProblemNoUPnP {
+		t.Fatalf("expected the manual port-forwarding guide, got %+v", st.Problem)
+	}
+	if s := a.settings(); s.RelayAddress != "127.0.0.1:29109" || s.RelayPassword != st.Password {
+		t.Fatalf("own transfers should use the local relay, got %+v", s)
+	}
+
+	// Connect tab: test then connect to the relay we're hosting.
+	a.tabs.SelectIndex(3)
+	a.connect.code.SetText(relay.FormatCode("127.0.0.1", 29109, st.Password))
+	test.Tap(a.connect.connect)
+	waitForLong(t, func() bool { return a.cfg.RelayAddress != "" })
+	shot("10-connect")
+	if a.cfg.RelayAddress != "127.0.0.1:29109" || a.cfg.RelayPassword != st.Password {
+		t.Fatalf("connect saved %q / %q", a.cfg.RelayAddress, a.cfg.RelayPassword)
+	}
+
+	// Wrong password is explained in plain English.
+	a.connect.code.SetText(relay.FormatCode("127.0.0.1", 29109, "nope-nope-nope"))
+	test.Tap(a.connect.test)
+	waitForLong(t, func() bool { return strings.Contains(a.connect.result.Text, "password is wrong") })
+
+	test.Tap(a.connect.public)
+	if a.cfg.RelayAddress != "" {
+		t.Fatal("Use public relays should clear the relay")
+	}
+
+	test.Tap(a.hostView.startBtn) // Stop hosting
+	if a.host != nil {
+		t.Fatal("still hosting after Stop")
+	}
+}
+
+func screenshotter(t *testing.T, a *App) func(string) {
+	dir := os.Getenv("TTS_SCREENSHOTS")
+	return func(name string) {
+		img := a.win.Canvas().Capture()
+		if dir == "" {
+			return
+		}
+		f, err := os.Create(filepath.Join(dir, name+".png"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if err := png.Encode(f, img); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func waitForLong(t *testing.T, cond func() bool) {
+	t.Helper()
+	for i := 0; i < 300; i++ {
+		ok := false
+		fyne.DoAndWait(func() { ok = cond() })
+		if ok {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatal("condition not met within 30s")
 }
 
 func waitFor(t *testing.T, cond func() bool) {

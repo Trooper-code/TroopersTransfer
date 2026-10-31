@@ -4,6 +4,9 @@ go 1.27.1
 
 require (
 	fyne.io/fyne/v2 v2.8.2
+	github.com/huin/goupnp v1.3.0
+	github.com/jackpal/gateway v1.2.0
+	github.com/jackpal/go-nat-pmp v1.1.0
 	github.com/schollz/croc/v11 v11.5.5
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/sys v0.49.0

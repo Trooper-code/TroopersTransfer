@@ -38,6 +38,8 @@ registry writes, so it runs happily from a USB stick.
   - [First launch on Windows (SmartScreen)](#first-launch-on-windows-smartscreen)
   - [Sending](#sending)
   - [Receiving](#receiving)
+  - [Hosting a relay for friends](#hosting-a-relay-for-friends)
+  - [Connecting to a friend's relay](#connecting-to-a-friends-relay)
   - [History](#history)
   - [Settings](#settings)
 - [Security and privacy](#security-and-privacy)
@@ -73,6 +75,10 @@ registry writes, so it runs happily from a USB stick.
   connects them directly.
 - **Your relay or the public one.** Works with croc's free public relays or
   your own self-hosted relay.
+- **Host a relay in one click.** The Host tab runs a relay on your PC and
+  opens the router ports automatically (UPnP / NAT-PMP). If that fails, it
+  explains why and gives step-by-step manual instructions filled in for your
+  network. Friends paste your connection code into the Connect tab.
 - **Truly portable.** Settings live in a JSON file next to the exe.
 - **Session history** of everything you sent and received.
 - **Cross-platform.** Windows, Linux and macOS from one Go codebase.
@@ -147,6 +153,56 @@ the first time.
 The sender has to start first. If nobody is sending with that code within
 30 seconds, you'll see "Wrong code, or the sender isn't sending right now."
 
+### Hosting a relay for friends
+
+The **Host** tab runs a croc relay inside the app, so you and your friends
+transfer through your PC instead of the public relays. That's often faster,
+and your files never touch anyone else's server.
+
+1. Open **Host** and click **Start hosting**. The relay uses five TCP ports
+   in a row, starting at 9009 by default (9009–9013). Change **Starting port**
+   if those are taken.
+2. If Windows asks whether to allow Troopers Transfer through the firewall,
+   click **Allow**.
+3. With **Open the ports on my router automatically (UPnP)** ticked, the app
+   asks your router to forward the ports (UPnP, with NAT-PMP as a fallback).
+   They are closed again when you stop hosting or quit, and they expire after
+   an hour if the app crashes.
+4. Send your friend the **connection code**, for example
+   `203.0.113.5:9009/amber-falcon-ridge`. There's one code for friends over
+   the internet and one for friends on the same Wi-Fi.
+
+While you're hosting, your own transfers go through your relay automatically.
+
+If the ports can't be opened, the Host tab explains why in plain English and
+what to do. The steps are filled in with your router's address, your PC's IP
+address and the exact ports, and **Copy these steps** puts them on the
+clipboard:
+
+| What happened | What the app tells you |
+|---|---|
+| The router didn't answer (UPnP off or unsupported) | Step-by-step manual port forwarding, plus a tip to switch UPnP on |
+| The router refused | The same manual steps |
+| Another device already uses the ports | Pick a different starting port, or remove the old router rule |
+| Your provider uses carrier-grade NAT | Hosting can't work on this connection. Port forwarding won't help, so it suggests a friend hosts or you use the public relays |
+| Your router is behind another router or modem | How to forward on the upstream device, or use bridge mode |
+| The router's address doesn't match your public address | Usually a VPN; turn it off and try again |
+| Another program on this PC uses the ports | Close it, or choose another starting port |
+
+**Router guides** opens step-by-step pages for specific router models.
+
+### Connecting to a friend's relay
+
+On the other computer, open **Connect**, paste the connection code and click
+**Connect**. The app checks it first: that the relay answers, that the
+password is right, and that all five ports can be reached. If something's
+wrong, it says what (for example, that only the first port was forwarded).
+**Use public relays** switches back. **Test connection** checks a code
+without switching to it.
+
+The Connect tab fills in the relay address and password under **Settings**,
+so you can still edit them there by hand.
+
 ### History
 
 The **History** tab lists this session's transfers, newest first: what was
@@ -209,8 +265,8 @@ Example `TroopersTransfer.json`:
 
 ## Self-hosting a croc relay
 
-By default the app uses croc's free public relays. To run your own, for
-privacy, speed, or an internal network:
+The easiest way is the **Host** tab ([above](#hosting-a-relay-for-friends)).
+To run a relay on an always-on server instead:
 
 1. On a server reachable by both computers, install croc
    (<https://github.com/schollz/croc#install>). For example on Linux:
@@ -312,7 +368,7 @@ This produces `dist\TroopersTransfer.exe`. The script:
 ### Linux
 
 ```bash
-sudo apt-get install gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev
+sudo apt-get install gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
 ./build.sh        # -> dist/TroopersTransfer
 ```
 
@@ -368,8 +424,9 @@ Set `TTS_DEBUG=1` for croc's debug log.
 ```
 .
 ├── main.go                 entry point
-├── ui/                     Fyne GUI: send, receive, progress, history, settings
+├── ui/                     Fyne GUI: send, receive, host, connect, progress, history, settings
 ├── transfer/               croc wrapper: callbacks, friendly errors, safety checks
+├── relay/                  hosted relay: in-app croc relay, UPnP/NAT-PMP, network checks, plain-English guides
 ├── config/                 portable JSON settings, Downloads folder lookup
 ├── assets/                 embedded app icon
 ├── tools/genicon/          program that draws assets/icon.png
