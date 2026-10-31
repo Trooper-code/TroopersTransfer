@@ -1,0 +1,12 @@
+/dist/
+*.syso
+*.exe
+TroopersTransfer.json
+/release/
+*.test
+*.test.exe
+.troopers-incoming-*/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
