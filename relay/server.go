@@ -20,9 +20,10 @@ import (
 // consecutive ports. The first is the control port; its banner tells clients
 // which transfer ports to use, exactly like the croc CLI relay.
 type server struct {
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-	once   sync.Once
+	cancel    context.CancelFunc
+	listeners []net.Listener
+	wg        sync.WaitGroup
+	once      sync.Once
 }
 
 // portError says which port couldn't be opened.
@@ -57,7 +58,7 @@ func startServer(base int, password string) (*server, error) {
 	banner := strings.Join(transferPorts, ",")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &server{cancel: cancel}
+	s := &server{cancel: cancel, listeners: listeners}
 	for i, l := range listeners {
 		b := ""
 		if i == 0 {
@@ -80,6 +81,11 @@ func (s *server) close() {
 	}
 	s.once.Do(func() {
 		s.cancel()
+		// Close the ports ourselves rather than waiting for croc to notice
+		// the cancel, so they're free the moment close returns.
+		for _, l := range s.listeners {
+			_ = l.Close()
+		}
 		done := make(chan struct{})
 		go func() {
 			s.wg.Wait()

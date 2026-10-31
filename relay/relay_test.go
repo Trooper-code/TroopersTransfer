@@ -165,7 +165,7 @@ func TestHostAndTestConnection(t *testing.T) {
 		t.Fatalf("Test with wrong password: %v", err)
 	}
 	h.Stop()
-	time.Sleep(200 * time.Millisecond)
+	// Stop closes the ports before returning, so this must fail right away.
 	err = Test(ctx, addr, "amber-falcon-ridge")
 	if err == nil || !strings.Contains(err.Error(), "Nothing answered") {
 		t.Fatalf("Test after stop: %v", err)

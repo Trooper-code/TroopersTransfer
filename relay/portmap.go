@@ -74,9 +74,9 @@ func (e *mapError) Unwrap() error { return e.err }
 
 // openPorts asks the router to forward each TCP port to localIP. It tries
 // UPnP first and falls back to NAT-PMP (Apple routers and some others).
-func openPorts(ctx context.Context, ports []int, localIP string) (*mapper, error) {
+func openPorts(ctx context.Context, ports []int, localIP, routerIP string) (*mapper, error) {
 	var upnpErr error
-	if m, err := openUPnP(ctx, ports, localIP); err == nil {
+	if m, err := openUPnP(ctx, ports, localIP, routerIP); err == nil {
 		m.startRenew()
 		return m, nil
 	} else {
@@ -171,8 +171,43 @@ func searchErr(service string, err error) error {
 	return fmt.Errorf("%s: %v", service, err)
 }
 
-func openUPnP(ctx context.Context, ports []int, localIP string) (*mapper, error) {
-	c, err := discoverIGD(ctx)
+// findIGD runs the library's search and our direct search at the same time
+// and uses whichever finds the router.
+func findIGD(ctx context.Context, localIP, routerIP string) (igdClient, error) {
+	type res struct {
+		c   igdClient
+		err error
+	}
+	lib := make(chan res, 1)
+	direct := make(chan res, 1)
+	go func() {
+		c, err := discoverIGD(ctx)
+		lib <- res{c, err}
+	}()
+	go func() {
+		c, rep, err := discoverIGDDirect(ctx, localIP, routerIP)
+		if err != nil {
+			err = fmt.Errorf("%v (%s)", err, rep)
+		}
+		direct <- res{c, err}
+	}()
+	var errs []string
+	for range 2 {
+		var r res
+		select {
+		case r = <-lib:
+		case r = <-direct:
+		}
+		if r.c != nil {
+			return r.c, nil
+		}
+		errs = append(errs, r.err.Error())
+	}
+	return nil, errors.New(strings.Join(errs, "\n"))
+}
+
+func openUPnP(ctx context.Context, ports []int, localIP, routerIP string) (*mapper, error) {
+	c, err := findIGD(ctx, localIP, routerIP)
 	if err != nil {
 		return nil, &mapError{noRouterAnswer: true, err: err}
 	}

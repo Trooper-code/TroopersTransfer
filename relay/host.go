@@ -150,7 +150,7 @@ func (h *Host) check(ctx context.Context) {
 	var m *mapper
 	var mapErr error
 	if h.opts.AutoOpen && st.LocalIP != "" {
-		m, mapErr = openPorts(ctx, facts.ports, st.LocalIP)
+		m, mapErr = openPorts(ctx, facts.ports, st.LocalIP, st.RouterIP)
 	}
 	st.PublicIP = <-pubCh
 
