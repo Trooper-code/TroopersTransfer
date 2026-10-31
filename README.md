@@ -64,7 +64,7 @@ plain-English, step-by-step help when your router won't cooperate.
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
 
-## What's new in 1.1
+## What's new in 1.3
 
 - **Host tab.** Run a croc relay on your own PC with one click. The app opens
   the ports on your router automatically (UPnP, with NAT-PMP as a fallback),
