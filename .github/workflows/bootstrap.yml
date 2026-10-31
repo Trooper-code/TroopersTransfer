@@ -1,0 +1,37 @@
+name: bootstrap
+on:
+  push:
+    branches: [ci-bootstrap]
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Vendor
+        run: |
+          go get github.com/huin/goupnp@latest github.com/jackpal/gateway@latest github.com/jackpal/go-nat-pmp@latest
+          go mod tidy
+          go mod vendor
+          mkdir -p out
+          cp go.mod go.sum out/
+          tar czf out/vendor.tgz vendor
+          V=$(go env GOVERSION)
+          curl -sSL -o out/go.tgz "https://go.dev/dl/${V}.linux-amd64.tar.gz"
+          echo "$V" > out/goversion.txt
+          sudo apt-get update >/dev/null && sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev >/dev/null
+          (go vet ./... && go test ./...) > out/test-linux.txt 2>&1 || true
+          ls -la out
+      - name: Publish
+        run: |
+          cd out
+          split -b 90m go.tgz go.tgz.part- && rm go.tgz
+          split -b 90m vendor.tgz vendor.tgz.part- && rm vendor.tgz
+          git init -q -b ci-output
+          git config user.name ci && git config user.email ci@example.com
+          git add -A && git commit -qm "bootstrap output"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-output
