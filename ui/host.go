@@ -144,7 +144,7 @@ func (v *hostView) toggle() {
 	v.startBtn.SetText("Starting…")
 	msg := "Starting the relay…"
 	if v.autoOpen.Checked {
-		msg = "Starting the relay and asking your router to open the ports. This can take up to 20 seconds…"
+		msg = "Starting the relay and asking your router to open the ports. This usually takes a few seconds…"
 	}
 	v.status.Objects = []fyne.CanvasObject{wrapLabel(msg)}
 	v.status.Refresh()

@@ -100,20 +100,75 @@ func openPorts(ctx context.Context, ports []int, localIP string) (*mapper, error
 	return nil, &mapError{noRouterAnswer: true, err: fmt.Errorf("no UPnP or NAT-PMP router answered: %w", upnpErr)}
 }
 
-func discoverIGD(ctx context.Context) (igdClient, error) {
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	defer cancel()
+// discoverTimeout bounds each UPnP search. A search always listens for its
+// full 2-second window and then fetches the router's description, so each
+// one gets its own generous deadline.
+const discoverTimeout = 8 * time.Second
 
-	if cs, _, err := internetgateway2.NewWANIPConnection2ClientsCtx(ctx); err == nil && len(cs) > 0 {
-		return cs[0], nil
+// discoverIGD looks for the router's port-mapping service. Routers offer one
+// of three service types (most ISP gateways only the older WANIPConnection1),
+// so all three searches run at the same time and the newest one found wins.
+func discoverIGD(ctx context.Context) (igdClient, error) {
+	type result struct {
+		rank   int // lower is preferred
+		client igdClient
+		err    error
 	}
-	if cs, _, err := internetgateway2.NewWANIPConnection1ClientsCtx(ctx); err == nil && len(cs) > 0 {
-		return cs[0], nil
+	searches := []func(context.Context) (igdClient, error){
+		func(ctx context.Context) (igdClient, error) {
+			cs, _, err := internetgateway2.NewWANIPConnection2ClientsCtx(ctx)
+			if err == nil && len(cs) > 0 {
+				return cs[0], nil
+			}
+			return nil, searchErr("WANIPConnection2", err)
+		},
+		func(ctx context.Context) (igdClient, error) {
+			cs, _, err := internetgateway2.NewWANIPConnection1ClientsCtx(ctx)
+			if err == nil && len(cs) > 0 {
+				return cs[0], nil
+			}
+			return nil, searchErr("WANIPConnection1", err)
+		},
+		func(ctx context.Context) (igdClient, error) {
+			cs, _, err := internetgateway2.NewWANPPPConnection1ClientsCtx(ctx)
+			if err == nil && len(cs) > 0 {
+				return cs[0], nil
+			}
+			return nil, searchErr("WANPPPConnection1", err)
+		},
 	}
-	if cs, _, err := internetgateway2.NewWANPPPConnection1ClientsCtx(ctx); err == nil && len(cs) > 0 {
-		return cs[0], nil
+	results := make(chan result, len(searches))
+	for i, search := range searches {
+		go func() {
+			sctx, cancel := context.WithTimeout(ctx, discoverTimeout)
+			defer cancel()
+			c, err := search(sctx)
+			results <- result{rank: i, client: c, err: err}
+		}()
 	}
-	return nil, errors.New("no UPnP internet gateway found on this network")
+	var best *result
+	var errs []string
+	for range searches {
+		r := <-results
+		if r.client == nil {
+			errs = append(errs, r.err.Error())
+			continue
+		}
+		if best == nil || r.rank < best.rank {
+			best = &r
+		}
+	}
+	if best != nil {
+		return best.client, nil
+	}
+	return nil, fmt.Errorf("no UPnP internet gateway found on this network (%s)", strings.Join(errs, "; "))
+}
+
+func searchErr(service string, err error) error {
+	if err == nil {
+		return fmt.Errorf("%s: no answer", service)
+	}
+	return fmt.Errorf("%s: %v", service, err)
 }
 
 func openUPnP(ctx context.Context, ports []int, localIP string) (*mapper, error) {

@@ -129,7 +129,7 @@ func (h *Host) Retry(ctx context.Context) Status {
 // check gathers network facts, tries to open the ports, and records a
 // plain-English Problem if friends outside the network likely can't connect.
 func (h *Host) check(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	st := Status{Port: h.opts.Port, Password: h.opts.Password}
