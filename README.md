@@ -81,6 +81,23 @@ plain-English, step-by-step help when your router won't cooperate.
 - **Linux CI fixed.** The Linux build now installs the Wayland headers that
   GLFW 3.4 needs.
 
+**1.1.1 – 1.1.3**
+
+- **Finds more routers.** As well as the usual UPnP search, the app now asks
+  your router directly at its own address, and sends its multicast search
+  through the network adapter that actually reaches the router. On Windows PCs
+  with WSL, Hyper-V or a VPN, the usual search often went out through a
+  virtual adapter and never reached the router. Searches also run in parallel,
+  so a router that answers is found in a moment instead of timing out.
+- **Better help when you forward ports by hand.** When the router doesn't
+  answer UPnP, the steps now end with **I've opened the ports**. It switches
+  off automatic setup and restarts hosting. **Check my ports online** then
+  opens a port checker so you can confirm friends can reach you.
+- **More useful technical details.** When discovery fails, they say how many
+  replies came back from the router directly and by multicast, and which
+  devices answered.
+- **Ports freed instantly.** Stopping the relay closes its ports right away.
+
 ## Features
 
 - **Drag and drop sending.** Drop files or folders on the window (or browse),
@@ -228,16 +245,19 @@ and your transfers never touch anyone else's server.
    |---|---|
    | **Starting port** | The relay uses **five TCP ports in a row**: a control port plus four for the data. The default 9009 means 9009–9013, the same as croc's own relay. Change it only if those ports are taken. |
    | **Relay password** | Three random words, generated for you. Anyone with the connection code can use your relay, so the password stops strangers who scan for open relays. Click **New** to make a fresh one; old codes then stop working. |
-   | **Open the ports on my router automatically (UPnP)** | Asks your router to forward the five ports to this PC. Leave it ticked unless you've already forwarded them by hand. |
+   | **Open the ports on my router automatically (UPnP)** | Asks your router to forward the five ports to this PC. Leave it ticked unless you've already forwarded them by hand, or your router doesn't support UPnP. |
 
 3. Click **Start hosting**. The first time, Windows asks whether to allow
    Troopers Transfer through the firewall. Click **Allow**. If your network
    is set to *Public* in Windows, tick that box too, or friends won't get
    through.
-4. Within about 20 seconds the tab shows one of the following:
+4. Within a few seconds the tab shows one of the following:
    - A **green line**, *"Ports opened automatically (UPnP)"*. You're done.
    - A **yellow heading** that explains what went wrong, with steps to fix
      it. See [below](#when-automatic-setup-fails).
+   - With automatic opening unticked, your codes and a
+     **Check my ports online** button. See
+     [Opening the ports by hand](#opening-the-ports-by-hand).
 
 **Sharing**
 
@@ -272,17 +292,21 @@ leases and renews them while it runs.
 #### When automatic setup fails
 
 The app checks your network as well as trying to open the ports, so it can
-tell you the real cause instead of just "it didn't work". Every message has
-**Copy these steps** (puts the instructions on the clipboard) and
-**Try again**. Where forwarding by hand would help, there's also
-**Router guides**, which opens [portforward.com](https://portforward.com/router.htm)
-for pages specific to your router model. **Technical details** shows the raw
-error.
+tell you the real cause instead of just "it didn't work". The buttons under
+each message:
+
+| Button | What it does |
+|---|---|
+| **Copy these steps** | Puts the instructions on the clipboard. |
+| **I've opened the ports** | Shown when forwarding by hand would fix it. Click it after you've added the rule in your router. It switches off automatic setup and restarts hosting, because a router that doesn't answer UPnP won't start answering just because you forwarded the ports. |
+| **Try again** | Repeats the automatic setup and network checks, for example after switching UPnP on or restarting the router. |
+| **Router guides** | Opens [portforward.com](https://portforward.com/router.htm) for pages specific to your router model. |
+| **Technical details** | The raw error, including how many replies came back from your router directly and by multicast, and which devices answered. |
 
 | Heading you'll see | What's going on | What to do |
 |---|---|---|
-| **Couldn't open the ports automatically** | Your router didn't answer the automatic setup. UPnP is switched off, or the router doesn't support it. | Switch UPnP on in your router and click **Try again**, or [open the ports by hand](#opening-the-ports-by-hand). |
-| **Your router wouldn't open the ports** | The router answered but said no. Some only allow automatic setup for certain devices or ports. | [Open the ports by hand](#opening-the-ports-by-hand). |
+| **Couldn't open the ports automatically** | Your router didn't answer the automatic setup. UPnP is switched off, the router doesn't support it, or the setting is on but the service isn't running. That's common on ISP gateways until they're restarted. | Switch UPnP on (and click **Save** in the router), restart the router, then click **Try again**. Or [open the ports by hand](#opening-the-ports-by-hand) and click **I've opened the ports**. |
+| **Your router wouldn't open the ports** | The router answered but said no. Some only allow automatic setup for certain devices or ports. | [Open the ports by hand](#opening-the-ports-by-hand) and click **I've opened the ports**. |
 | **Another device is already using these ports** | Your router already forwards one of these ports to a different computer or console. | Change **Starting port** (try 9109) and start again, or delete the old rule in your router. |
 | **Hosting won't work on this connection** | Your provider shares one public address between many customers (*carrier-grade NAT*). Nobody outside can reach your PC, and **port forwarding can't fix this**. Common on mobile, satellite and some cable or fibre plans. | Let a friend host instead, or use the public relays. Some providers will give you your own public IP if you ask. Friends on your Wi-Fi can still use the local code. |
 | **Your router is behind another router** | Your router is plugged into a second router, often the provider's modem, so the ports would have to be opened on both. | Put the provider's modem in *bridge mode*, or forward the ports on it to your router. The steps name the device's likely address. |
@@ -321,17 +345,33 @@ your network; here's the long version.
 
    If your router only takes one port per rule, add five rules: 9009, 9010,
    9011, 9012 and 9013.
-5. **Save**, then click **Try again** in the Host tab.
+5. **Save**, then click **I've opened the ports** in the Host tab. Or, if
+   you're not hosting yet, untick **Open the ports on my router
+   automatically** and click **Start hosting**. Either way the app stops
+   asking the router for UPnP and just shows your connection codes.
 6. **Keep your PC's address the same.** Routers sometimes hand out a new
    address after a restart, which breaks the rule. Look for *DHCP
    reservation*, *Address reservation* or *Static lease* in your router and
    reserve the current address for this PC.
-7. **Ask your friend to test it.** They paste your code into **Connect** and
-   click **Test connection**. Testing from your own PC isn't reliable,
-   because many routers can't loop a connection back to themselves.
+7. **Check it works**, while you're hosting:
+   - Click **Check my ports online** in the Host tab (it opens
+     [canyouseeme.org](https://canyouseeme.org)), enter your starting port
+     (e.g. `9009`) and click **Check Port**. **Success** means the internet
+     can reach your relay. **Error** means the rule isn't working yet, or your
+     provider uses carrier-grade NAT (see the table above).
+   - For the full check, ask a friend to paste your code into **Connect** and
+     click **Test connection**. That checks the password and all five ports,
+     not just the first. Don't test from your own PC: many routers can't loop
+     a connection back to themselves.
 
-If you've forwarded the ports yourself, you can untick **Open the ports on my
-router automatically** so the app doesn't try UPnP.
+> [!TIP]
+> **Example: an ARRIS gateway.** On many ISP-supplied ARRIS gateways the
+> setting is under **Advanced → Port Forwarding → Add**. Choose service type
+> **TCP**, set **Server IPv4 Address** to your PC's address and
+> **Start/End Port** to e.g. `9009`/`9013`. UPnP lives under
+> **Advanced → Device Discovery**, but on some ISP firmware it doesn't answer
+> even when enabled, so forwarding by hand is the reliable option. The
+> **Zero Config** setting there is unrelated; leave it off.
 
 ### Connecting to a friend's relay
 
@@ -442,7 +482,8 @@ Example `TroopersTransfer.json`:
   while starting or rechecking a hosted relay, it asks your router to open
   ports (UPnP/NAT-PMP, on your local network only) and looks up your public IP
   address from `api.ipify.org`, `ipv4.icanhazip.com` or `ifconfig.me`. Nothing
-  else is sent.
+  else is sent. **Check my ports online** and **Router guides** just open a
+  page in your browser when you click them.
 - **Hosting:** a hosted relay only forwards encrypted data. It can't read your
   friends' files, and they can't read yours. The relay password keeps strangers
   from using it. Router ports are open only while you're hosting, use one-hour
@@ -524,6 +565,8 @@ and one on a private relay will never find each other.
 | Symptom | What to do |
 |---|---|
 | The Host tab shows a yellow heading | Follow the steps under it. The table in [When automatic setup fails](#when-automatic-setup-fails) explains each one. |
+| UPnP is enabled in the router, but the app says it didn't answer | Make sure you clicked **Save** in the router, then restart the router. Some ISP firmware never answers UPnP even when it says it's on. [Forward the ports by hand](#opening-the-ports-by-hand) and click **I've opened the ports**. |
+| You forwarded the ports, but the yellow heading is still there | Click **I've opened the ports**, or untick **Open the ports on my router automatically** and start hosting again. The heading is about UPnP, not about your rule. Check the rule with **Check my ports online**. |
 | "Ports opened automatically" but your friend gets *Couldn't reach …* | Windows Firewall is probably blocking the app. Open *Windows Security → Firewall & network protection → Allow an app through firewall* and tick **Private** and **Public** for Troopers Transfer. Some antivirus suites have their own firewall too. |
 | Your friend gets *Reached the relay, but not all of its ports* | Forward all five ports, not just the first. |
 | It worked yesterday but not today | Your public IP may have changed. Send your friend the new code from the Host tab. If you forwarded the ports by hand, check your PC kept the same local IP (set up a DHCP reservation). |
@@ -550,7 +593,7 @@ winget install BrechtSanders.WinLibs.POSIX.UCRT   # MinGW-w64 gcc
 Open a new terminal so `go` and `gcc` are on `PATH`, then:
 
 ```powershell
-.\build.ps1 -Version 1.1.0
+.\build.ps1 -Version 1.1.3
 ```
 
 This produces `dist\TroopersTransfer.exe`. The script:
@@ -679,9 +722,26 @@ The Host and Connect tabs are built on the `relay/` package.
   `croc relay`, so any croc client, including the croc CLI, can use it.
 - **Your own transfers** go to `127.0.0.1:<port>` while you host, so they
   don't depend on your router supporting "hairpin" connections back to itself.
-- **Opening the ports:** the app discovers your router with UPnP (trying the
-  WANIPConnection2, WANIPConnection1 and WANPPPConnection1 services) and adds
-  one TCP mapping per port with a one-hour lease, renewed every 20 minutes. If
+- **Finding the router:** two UPnP searches run side by side, and whichever
+  finds the router first wins:
+  1. the UPnP library's multicast search for the WANIPConnection2,
+     WANIPConnection1 and WANPPPConnection1 services, with all three in
+     parallel;
+  2. the app's own SSDP search (`relay/ssdp.go`). It sends `M-SEARCH` straight
+     to the default gateway on UDP 1900, and also to the multicast group with
+     the outgoing adapter pinned to the one that reaches the router
+     (`IP_MULTICAST_IF`). It asks for the gateway device types and
+     `upnp:rootdevice` / `ssdp:all` as well as the services, because some ISP
+     gateways only answer generic searches.
+
+  Each device description is checked as soon as it's heard, and a
+  port-mapping service on the router's own address is used immediately. This
+  matters on Windows: a plain multicast search leaves through the OS's
+  default multicast adapter, which on PCs with WSL, Hyper-V or a VPN is often
+  virtual, and Windows Firewall can drop replies to multicast. A unicast
+  request to the router avoids both.
+- **Opening the ports:** the app adds one TCP mapping per port with a
+  one-hour lease, renewed every 20 minutes. If
   no UPnP router answers, it tries NAT-PMP. If one port fails, the ones
   already added are removed, so you never end up with half a set. Routers that
   only accept permanent leases (UPnP error 725) are handled, and error 718 is
@@ -741,10 +801,16 @@ go test ./...
   filled-in manual steps, port-in-use detection, the connection test (right
   password, wrong password, relay stopped), and a **real file transfer through
   a hosted relay** with LAN discovery off, so the relay has to carry it.
+- `relay/fakerouter_test.go`: a fake UPnP gateway that, like some ISP
+  routers, never answers multicast and only answers a direct search for
+  `InternetGatewayDevice:1`. It checks the router is found, all five ports
+  are forwarded to this PC, a port clash (error 718) rolls back the ports
+  already opened, mappings are removed on close, and the technical details
+  report what discovery saw when nothing answers.
 - `ui/ui_test.go`: builds the real window with Fyne's software renderer and
-  walks every screen. This includes starting a real relay from the Host tab on
-  a machine with no UPnP router (the manual guide must appear) and connecting
-  to it from the Connect tab. Set `TTS_SCREENSHOTS=<absolute dir>` to save
+  walks every screen. This includes starting a real relay from the Host tab
+  and connecting to it from the Connect tab (right and wrong passwords), plus
+  fixed demo states for the README screenshots. Set `TTS_SCREENSHOTS=<absolute dir>` to save
   PNGs; that's how the images in this README were made.
 
 ## Continuous integration and releases
@@ -762,8 +828,8 @@ Binaries are uploaded as workflow artifacts. To publish a release, push a
 version tag:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.3
+git push origin v1.1.3
 ```
 
 The workflow stamps the version into each binary and attaches
