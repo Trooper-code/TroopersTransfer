@@ -17,7 +17,10 @@ import (
 	"github.com/troopers/transfer-service/relay"
 )
 
-const routerGuidesURL = "https://portforward.com/router.htm"
+const (
+	routerGuidesURL = "https://portforward.com/router.htm"
+	portCheckURL    = "https://canyouseeme.org/"
+)
 
 // hostView runs a relay on this PC for friends to connect to.
 type hostView struct {
@@ -231,8 +234,15 @@ func (v *hostView) render() {
 		objs = append(objs, ok)
 	case !st.Checked:
 		objs = append(objs, wrapLabel(fmt.Sprintf(
-			"Automatic port opening is off. Friends outside your home network can only connect if you've forwarded TCP ports %d–%d on your router to this PC (%s).",
-			st.Port, st.Port+relay.PortCount-1, orUnknown(st.LocalIP))))
+			"Automatic port opening is off. Friends outside your home network can connect if you've forwarded TCP ports %d–%d on your router to this PC (%s).",
+			st.Port, st.Port+relay.PortCount-1, orUnknown(st.LocalIP))),
+			wrapLabel(fmt.Sprintf("To check, click Check my ports online. On the page that opens, enter port %d and click Check Port while you're hosting. "+
+				"Success means friends can reach you. Error means the router rule isn't working yet, or your internet provider doesn't give you your own public address.", st.Port)),
+			container.NewHBox(widget.NewButtonWithIcon("Check my ports online", theme.SearchIcon(), func() {
+				if u, err := url.Parse(portCheckURL); err == nil {
+					_ = v.a.fa.OpenURL(u)
+				}
+			})))
 	}
 	if internet == "" && (st.Problem == nil || st.Problem.CanForward) {
 		objs = append(objs, wrapLabel("Couldn't look up your public IP address, so there's no internet connection code yet. Check your internet connection and click Try again."))
@@ -260,6 +270,11 @@ func (v *hostView) problemCard(p *relay.Problem, withRetry bool) fyne.CanvasObje
 	buttons := container.NewHBox(widget.NewButtonWithIcon("Copy these steps", theme.ContentCopyIcon(), func() {
 		v.a.fa.Clipboard().SetContent(p.Text())
 	}))
+	if withRetry && p.CanForward && v.a.host != nil {
+		opened := widget.NewButtonWithIcon("I've opened the ports", theme.ConfirmIcon(), v.manualMode)
+		opened.Importance = widget.HighImportance
+		buttons.Add(opened)
+	}
 	if withRetry {
 		buttons.Add(widget.NewButtonWithIcon("Try again", theme.ViewRefreshIcon(), v.retry))
 	}
@@ -277,6 +292,17 @@ func (v *hostView) problemCard(p *relay.Problem, withRetry bool) fyne.CanvasObje
 		box.Add(widget.NewAccordion(widget.NewAccordionItem("Technical details", d)))
 	}
 	return box
+}
+
+// manualMode is for when the user has forwarded the ports by hand: stop
+// asking the router (it won't answer) and restart hosting without UPnP.
+func (v *hostView) manualMode() {
+	if v.starting {
+		return
+	}
+	v.a.stopHosting()
+	v.autoOpen.SetChecked(false)
+	v.toggle()
 }
 
 func (v *hostView) showProblemDialog(p *relay.Problem) {

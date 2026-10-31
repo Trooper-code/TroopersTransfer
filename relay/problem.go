@@ -89,7 +89,7 @@ func (f netFacts) forwardSteps() []string {
 		"Open " + f.routerPage() + " and sign in to your router. The login is often printed on a sticker on the router.",
 		"Find the Port Forwarding section. It may be called Virtual Server, NAT, Port Mapping, or Applications & Gaming, and is often under Advanced.",
 		fmt.Sprintf("Add a new rule. Device / IP address: %s (this PC). Ports: %s (both the outside and inside ports). Protocol: TCP.", f.localIP, f.portRange()),
-		"Save the rule, then click Try again here.",
+		"Save the rule, then click I've opened the ports below. The app stops trying automatic setup and shows a button to check the ports are reachable.",
 		"If Windows asks whether to allow Troopers Transfer through the firewall, click Allow.",
 	}
 }
@@ -101,7 +101,7 @@ func problemNoUPnP(f netFacts, details string) *Problem {
 		Summary: "Your router didn't respond to the automatic setup (UPnP). It may be turned off, or your router may not support it. " +
 			"You can open the ports yourself instead. It only takes a few minutes and you only need to do it once.",
 		Steps:      f.forwardSteps(),
-		Tip:        "Some routers have a UPnP setting you can switch on instead. Look for it under Advanced or NAT settings, then click Try again.",
+		Tip:        "Some routers have a UPnP setting you can switch on instead. Look for it under Advanced or NAT settings, then click Try again. Some routers only start UPnP after a restart.",
 		CanForward: true,
 		Details:    details,
 	}
