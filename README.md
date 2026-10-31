@@ -24,21 +24,29 @@ end-to-end encrypted file transfer tool, in a friendly GUI that anyone can
 use. It's a **single executable**: no installer, no admin rights, and no
 registry writes, so it runs happily from a USB stick.
 
+It can also **host its own relay**: one click turns your PC into the server
+your friends transfer through, with the router ports opened for you, and
+plain-English, step-by-step help when your router won't cooperate.
+
 <p align="center">
   <img src="docs/screenshots/send.png" alt="Sending files: the code phrase, a QR code and live progress" width="600">
 </p>
 
 ## Table of contents
 
+- [What's new in 1.1](#whats-new-in-11)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Download](#download)
 - [Quick start](#quick-start)
+  - [Send a file](#send-a-file)
+  - [Host a relay for your friends](#host-a-relay-for-your-friends)
 - [Using it](#using-it)
   - [First launch on Windows (SmartScreen)](#first-launch-on-windows-smartscreen)
   - [Sending](#sending)
   - [Receiving](#receiving)
   - [Hosting a relay for friends](#hosting-a-relay-for-friends)
+  - [Opening the ports by hand](#opening-the-ports-by-hand)
   - [Connecting to a friend's relay](#connecting-to-a-friends-relay)
   - [History](#history)
   - [Settings](#settings)
@@ -49,11 +57,29 @@ registry writes, so it runs happily from a USB stick.
 - [Developer CLI](#developer-cli)
 - [Project layout](#project-layout)
 - [How the croc integration works](#how-the-croc-integration-works)
+- [How relay hosting works](#how-relay-hosting-works)
 - [Safety design](#safety-design)
 - [Tests](#tests)
 - [Continuous integration and releases](#continuous-integration-and-releases)
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
+
+## What's new in 1.1
+
+- **Host tab.** Run a croc relay on your own PC with one click. The app opens
+  the ports on your router automatically (UPnP, with NAT-PMP as a fallback),
+  gives you a connection code to send to friends, and closes the ports again
+  when you stop.
+- **Plain-English router help.** If the ports can't be opened, the app works
+  out *why*: UPnP switched off, a refusal, a port clash, carrier-grade NAT, a
+  second router, a VPN, or another program using the ports. It then tells you
+  exactly what to do, with step-by-step port-forwarding instructions that
+  already contain your router's address, your PC's IP address and the ports.
+- **Connect tab.** Paste a friend's connection code and click **Connect**.
+  The app checks the relay answers, the password is right and every port can
+  be reached before switching to it.
+- **Linux CI fixed.** The Linux build now installs the Wayland headers that
+  GLFW 3.4 needs.
 
 ## Features
 
@@ -78,12 +104,23 @@ registry writes, so it runs happily from a USB stick.
 - **Host a relay in one click.** The Host tab runs a relay on your PC and
   opens the router ports automatically (UPnP / NAT-PMP). If that fails, it
   explains why and gives step-by-step manual instructions filled in for your
-  network. Friends paste your connection code into the Connect tab.
+  network.
+- **Connect with one code.** Friends paste your connection code into the
+  Connect tab. It's tested before it's used, and any problem is explained.
 - **Truly portable.** Settings live in a JSON file next to the exe.
 - **Session history** of everything you sent and received.
 - **Cross-platform.** Windows, Linux and macOS from one Go codebase.
 
 ## Screenshots
+
+| Host a relay | Connect to a friend's relay |
+|---|---|
+| ![Host tab with ports opened automatically](docs/screenshots/host.png) | ![Connect tab](docs/screenshots/connect.png) |
+
+<p align="center">
+  <img src="docs/screenshots/host-ports.png" alt="Host tab explaining how to open the ports by hand when the router doesn't support UPnP" width="600"><br>
+  <em>When the router won't open the ports itself, the Host tab says why and walks you through it.</em>
+</p>
 
 | Receive | Accept or decline |
 |---|---|
@@ -106,6 +143,8 @@ also available as artifacts on the [**Actions**](../../actions) tab.
 
 ## Quick start
 
+### Send a file
+
 1. Both people open Troopers Transfer.
 2. **Sender:** drag files onto the window and click **Send**. A code like
    `curry-salsa-blunt` appears.
@@ -113,6 +152,21 @@ also available as artifacts on the [**Actions**](../../actions) tab.
    then **Accept**.
 
 The files land in `Downloads\Troopers Transfer` by default.
+
+### Host a relay for your friends
+
+1. **You:** open the **Host** tab and click **Start hosting**. Click
+   **Allow** if Windows asks about the firewall.
+2. **You:** click **Copy** next to *Connection code for friends over the
+   internet* and send it to your friend. It looks like
+   `203.0.113.5:9009/amber-falcon-ridge`.
+3. **Your friend:** open the **Connect** tab, paste the code and click
+   **Connect**.
+4. Send and receive as usual. Everything now goes through your PC.
+
+If the Host tab shows a yellow heading instead of a green "Ports opened"
+line, follow the steps underneath it. See
+[Opening the ports by hand](#opening-the-ports-by-hand).
 
 ## Using it
 
@@ -155,53 +209,170 @@ The sender has to start first. If nobody is sending with that code within
 
 ### Hosting a relay for friends
 
-The **Host** tab runs a croc relay inside the app, so you and your friends
-transfer through your PC instead of the public relays. That's often faster,
-and your files never touch anyone else's server.
+Normally your transfers go through croc's free public relays, servers run by
+volunteers that pass the encrypted data between the two computers. The
+**Host** tab runs a relay inside the app instead, so you and your friends
+transfer through **your** PC. This is often faster than a busy public relay,
+and your transfers never touch anyone else's server.
 
-1. Open **Host** and click **Start hosting**. The relay uses five TCP ports
-   in a row, starting at 9009 by default (9009–9013). Change **Starting port**
-   if those are taken.
-2. If Windows asks whether to allow Troopers Transfer through the firewall,
-   click **Allow**.
-3. With **Open the ports on my router automatically (UPnP)** ticked, the app
-   asks your router to forward the ports (UPnP, with NAT-PMP as a fallback).
-   They are closed again when you stop hosting or quit, and they expire after
-   an hour if the app crashes.
-4. Send your friend the **connection code**, for example
-   `203.0.113.5:9009/amber-falcon-ridge`. There's one code for friends over
-   the internet and one for friends on the same Wi-Fi.
+<p align="center">
+  <img src="docs/screenshots/host.png" alt="Host tab while hosting" width="600">
+</p>
 
-While you're hosting, your own transfers go through your relay automatically.
+**Starting**
 
-If the ports can't be opened, the Host tab explains why in plain English and
-what to do. The steps are filled in with your router's address, your PC's IP
-address and the exact ports, and **Copy these steps** puts them on the
+1. Open the **Host** tab.
+2. Check the settings. The defaults are fine for most people:
+
+   | Setting | What it does |
+   |---|---|
+   | **Starting port** | The relay uses **five TCP ports in a row**: a control port plus four for the data. The default 9009 means 9009–9013, the same as croc's own relay. Change it only if those ports are taken. |
+   | **Relay password** | Three random words, generated for you. Anyone with the connection code can use your relay, so the password stops strangers who scan for open relays. Click **New** to make a fresh one; old codes then stop working. |
+   | **Open the ports on my router automatically (UPnP)** | Asks your router to forward the five ports to this PC. Leave it ticked unless you've already forwarded them by hand. |
+
+3. Click **Start hosting**. The first time, Windows asks whether to allow
+   Troopers Transfer through the firewall. Click **Allow**. If your network
+   is set to *Public* in Windows, tick that box too, or friends won't get
+   through.
+4. Within about 20 seconds the tab shows one of the following:
+   - A **green line**, *"Ports opened automatically (UPnP)"*. You're done.
+   - A **yellow heading** that explains what went wrong, with steps to fix
+     it. See [below](#when-automatic-setup-fails).
+
+**Sharing**
+
+The tab shows two **connection codes**. Click **Copy** to put one on the
 clipboard:
 
-| What happened | What the app tells you |
+| Code | Use it for |
 |---|---|
-| The router didn't answer (UPnP off or unsupported) | Step-by-step manual port forwarding, plus a tip to switch UPnP on |
-| The router refused | The same manual steps |
-| Another device already uses the ports | Pick a different starting port, or remove the old router rule |
-| Your provider uses carrier-grade NAT | Hosting can't work on this connection. Port forwarding won't help, so it suggests a friend hosts or you use the public relays |
-| Your router is behind another router or modem | How to forward on the upstream device, or use bridge mode |
-| The router's address doesn't match your public address | Usually a VPN; turn it off and try again |
-| Another program on this PC uses the ports | Close it, or choose another starting port |
+| *For friends over the internet*, e.g. `203.0.113.5:9009/amber-falcon-ridge` | Anyone outside your home. Contains your public IP address, the port and the password. |
+| *For friends on your Wi-Fi / home network*, e.g. `192.168.1.42:9009/amber-falcon-ridge` | People on the same network as you. Works even when the internet code can't. |
 
-**Router guides** opens step-by-step pages for specific router models.
+Your friend pastes the code into their **Connect** tab (see
+[Connecting to a friend's relay](#connecting-to-a-friends-relay)). Both of
+you then send and receive exactly as before: code phrases, accept/decline and
+progress all work the same.
+
+**While hosting**
+
+- Your own transfers go through your relay automatically. You don't need to
+  connect to yourself.
+- Keep the app open. Closing it stops the relay.
+- Your public IP address can change (for example after a router restart). If
+  friends suddenly can't connect, check the Host tab for the current code.
+
+**Stopping**
+
+Click **Stop hosting**, or just close the app. The relay shuts down and the
+router ports are closed again. If the app crashes, the router forgets the
+ports on its own within an hour, because the app only ever asks for one-hour
+leases and renews them while it runs.
+
+#### When automatic setup fails
+
+The app checks your network as well as trying to open the ports, so it can
+tell you the real cause instead of just "it didn't work". Every message has
+**Copy these steps** (puts the instructions on the clipboard) and
+**Try again**. Where forwarding by hand would help, there's also
+**Router guides**, which opens [portforward.com](https://portforward.com/router.htm)
+for pages specific to your router model. **Technical details** shows the raw
+error.
+
+| Heading you'll see | What's going on | What to do |
+|---|---|---|
+| **Couldn't open the ports automatically** | Your router didn't answer the automatic setup. UPnP is switched off, or the router doesn't support it. | Switch UPnP on in your router and click **Try again**, or [open the ports by hand](#opening-the-ports-by-hand). |
+| **Your router wouldn't open the ports** | The router answered but said no. Some only allow automatic setup for certain devices or ports. | [Open the ports by hand](#opening-the-ports-by-hand). |
+| **Another device is already using these ports** | Your router already forwards one of these ports to a different computer or console. | Change **Starting port** (try 9109) and start again, or delete the old rule in your router. |
+| **Hosting won't work on this connection** | Your provider shares one public address between many customers (*carrier-grade NAT*). Nobody outside can reach your PC, and **port forwarding can't fix this**. Common on mobile, satellite and some cable or fibre plans. | Let a friend host instead, or use the public relays. Some providers will give you your own public IP if you ask. Friends on your Wi-Fi can still use the local code. |
+| **Your router is behind another router** | Your router is plugged into a second router, often the provider's modem, so the ports would have to be opened on both. | Put the provider's modem in *bridge mode*, or forward the ports on it to your router. The steps name the device's likely address. |
+| **Friends may not be able to reach you** | The address your router reports isn't the one the internet sees. Usually a VPN is on. | Turn the VPN off and click **Try again**. If you don't use one, see carrier-grade NAT above. |
+| **Another program is using the relay ports** | Something on this PC already listens on these ports, maybe a second copy of the app or croc. | Close it, or change **Starting port**. |
+
+<p align="center">
+  <img src="docs/screenshots/host-ports.png" alt="Manual port forwarding steps in the Host tab" width="600">
+</p>
+
+### Opening the ports by hand
+
+If automatic setup doesn't work, you can forward the ports yourself. You only
+need to do this once. The Host tab shows these steps already filled in for
+your network; here's the long version.
+
+1. **Find your router's settings page.** The Host tab tells you its address
+   (for example `http://192.168.1.1`). You can also find it by opening
+   PowerShell or Command Prompt and running `ipconfig`: it's the
+   **Default Gateway**.
+2. **Sign in.** The username and password are often printed on a sticker on
+   the router. If you've changed them, use yours.
+3. **Find port forwarding.** Depending on the brand, it's called *Port
+   Forwarding*, *Virtual Server*, *NAT*, *Port Mapping*, *Applications &
+   Gaming* or *Gaming*, usually under *Advanced*. Some routers manage this
+   through a phone app instead.
+4. **Add a rule:**
+
+   | Field | Value |
+   |---|---|
+   | Device / internal IP | Your PC's address, shown in the Host tab (the **IPv4 Address** in `ipconfig`), e.g. `192.168.1.42` |
+   | External (outside) ports | `9009-9013`, or your starting port and the four after it |
+   | Internal ports | The same: `9009-9013` |
+   | Protocol | **TCP** |
+   | Name | Anything, e.g. *Troopers Transfer* |
+
+   If your router only takes one port per rule, add five rules: 9009, 9010,
+   9011, 9012 and 9013.
+5. **Save**, then click **Try again** in the Host tab.
+6. **Keep your PC's address the same.** Routers sometimes hand out a new
+   address after a restart, which breaks the rule. Look for *DHCP
+   reservation*, *Address reservation* or *Static lease* in your router and
+   reserve the current address for this PC.
+7. **Ask your friend to test it.** They paste your code into **Connect** and
+   click **Test connection**. Testing from your own PC isn't reliable,
+   because many routers can't loop a connection back to themselves.
+
+If you've forwarded the ports yourself, you can untick **Open the ports on my
+router automatically** so the app doesn't try UPnP.
 
 ### Connecting to a friend's relay
 
-On the other computer, open **Connect**, paste the connection code and click
-**Connect**. The app checks it first: that the relay answers, that the
-password is right, and that all five ports can be reached. If something's
-wrong, it says what (for example, that only the first port was forwarded).
-**Use public relays** switches back. **Test connection** checks a code
-without switching to it.
+<p align="center">
+  <img src="docs/screenshots/connect.png" alt="Connect tab after connecting" width="600">
+</p>
+
+1. Ask your friend to click **Start hosting** and send you their connection
+   code.
+2. Open the **Connect** tab and paste the code with **Paste**.
+3. Click **Connect**. The app first checks that:
+   - the relay answers at that address,
+   - the password is right, and
+   - all five ports can be reached, not just the first.
+4. If everything checks out, *"Currently using"* changes to your friend's
+   relay and every transfer goes through it.
+
+**Test connection** runs the same checks without switching. It's handy for
+your friend to confirm their port forwarding works. **Use public relays**
+switches back to croc's public relays.
 
 The Connect tab fills in the relay address and password under **Settings**,
-so you can still edit them there by hand.
+so you can see or edit them there too. Codes are flexible: `host:port/password`,
+`host/password` (port 9009 assumed) and a bare `host:port` (croc's default
+password) all work.
+
+If the check fails, the app says why:
+
+| Message | Meaning |
+|---|---|
+| *Nothing answered at …* | The host hasn't clicked **Start hosting**, or the address or port is wrong. |
+| *Couldn't reach …* | The host's router or firewall is blocking the connection. They should follow the steps in their Host tab. |
+| *The relay is running, but the password is wrong.* | Check the part after the `/`. The host may have clicked **New**. |
+| *Reached the relay, but not all of its ports* | Only some of the five ports are forwarded. The host should forward all five. |
+| *Couldn't find …* | The address has a typo. |
+
+> [!IMPORTANT]
+> Both people must use the same relay. If you're hosting, your friend must be
+> connected to you (and you're automatically using your own relay). If one of
+> you is on the public relays and the other on a private relay, you'll never
+> find each other.
 
 ### History
 
@@ -227,6 +398,11 @@ stays portable. If that folder isn't writable (for example in
 shows which file is in use. Nothing is written until you click
 **Save settings**.
 
+The Host tab saves its own settings to the same file when you click
+**Start hosting**: the starting port, the relay password (so your connection
+code stays the same between sessions) and whether to use automatic port
+opening.
+
 Example `TroopersTransfer.json`:
 
 ```json
@@ -234,12 +410,15 @@ Example `TroopersTransfer.json`:
   "relay_address": "relay.example.com:9009",
   "relay_password": "choose-a-password",
   "zip_folders": true,
-  "receive_folder": "D:\\Incoming"
+  "receive_folder": "D:\\Incoming",
+  "host_port": 9009,
+  "host_password": "amber-falcon-ridge",
+  "host_no_auto_open": false
 }
 ```
 
 > [!NOTE]
-> The relay password is stored in plain text in that JSON file. It only
+> Relay passwords are stored in plain text in that JSON file. It only
 > protects access to the relay; your files are still end-to-end encrypted by
 > the code phrase.
 
@@ -259,7 +438,15 @@ Example `TroopersTransfer.json`:
   destination) automatically decline the transfer. See
   [Safety design](#safety-design).
 - **No telemetry:** the app makes no network connections except to the croc
-  relay you use and to the other computer.
+  relay you use and to the other computer. The exception is the Host tab:
+  while starting or rechecking a hosted relay, it asks your router to open
+  ports (UPnP/NAT-PMP, on your local network only) and looks up your public IP
+  address from `api.ipify.org`, `ipv4.icanhazip.com` or `ifconfig.me`. Nothing
+  else is sent.
+- **Hosting:** a hosted relay only forwards encrypted data. It can't read your
+  friends' files, and they can't read yours. The relay password keeps strangers
+  from using it. Router ports are open only while you're hosting, use one-hour
+  leases that the app renews, and are removed when you stop or quit.
 - **Clipboard:** croc's clipboard integration is disabled; the app only copies
   the code when you click **Copy**.
 
@@ -332,14 +519,25 @@ sudo systemctl enable --now croc-relay
 Both computers must use the **same relay settings**. One on the public relay
 and one on a private relay will never find each other.
 
+**Hosting problems**
+
+| Symptom | What to do |
+|---|---|
+| The Host tab shows a yellow heading | Follow the steps under it. The table in [When automatic setup fails](#when-automatic-setup-fails) explains each one. |
+| "Ports opened automatically" but your friend gets *Couldn't reach …* | Windows Firewall is probably blocking the app. Open *Windows Security → Firewall & network protection → Allow an app through firewall* and tick **Private** and **Public** for Troopers Transfer. Some antivirus suites have their own firewall too. |
+| Your friend gets *Reached the relay, but not all of its ports* | Forward all five ports, not just the first. |
+| It worked yesterday but not today | Your public IP may have changed. Send your friend the new code from the Host tab. If you forwarded the ports by hand, check your PC kept the same local IP (set up a DHCP reservation). |
+| *Hosting won't work on this connection* | Your provider uses carrier-grade NAT. Let a friend host, or use the public relays. |
+| You can't connect to your own internet code | That's normal on many routers. Your own transfers already use your relay through `127.0.0.1`, and your friend should test from their side. |
+
 ## Building from source
 
 Requirements: **Go** (the version in [`go.mod`](go.mod)) and a **C compiler**,
 because Fyne uses cgo for OpenGL.
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/Trooper-code/TroopersTransfer.git
+cd TroopersTransfer
 ```
 
 ### Windows
@@ -352,7 +550,7 @@ winget install BrechtSanders.WinLibs.POSIX.UCRT   # MinGW-w64 gcc
 Open a new terminal so `go` and `gcc` are on `PATH`, then:
 
 ```powershell
-.\build.ps1 -Version 1.0.0
+.\build.ps1 -Version 1.1.0
 ```
 
 This produces `dist\TroopersTransfer.exe`. The script:
@@ -470,6 +668,41 @@ one transfer runs at a time.
 > `go:linkname` ties this build to croc's internals. When upgrading croc,
 > re-run the tests and a two-process transfer with `tts-cli`.
 
+## How relay hosting works
+
+The Host and Connect tabs are built on the `relay/` package.
+
+- **The relay server** is croc's own relay code (`croc/v11/src/tcp`) running
+  inside the app, on five consecutive ports. The app binds all five first,
+  so a port that's already taken is reported before anything starts. The
+  control port's banner lists the four transfer ports, exactly like
+  `croc relay`, so any croc client, including the croc CLI, can use it.
+- **Your own transfers** go to `127.0.0.1:<port>` while you host, so they
+  don't depend on your router supporting "hairpin" connections back to itself.
+- **Opening the ports:** the app discovers your router with UPnP (trying the
+  WANIPConnection2, WANIPConnection1 and WANPPPConnection1 services) and adds
+  one TCP mapping per port with a one-hour lease, renewed every 20 minutes. If
+  no UPnP router answers, it tries NAT-PMP. If one port fails, the ones
+  already added are removed, so you never end up with half a set. Routers that
+  only accept permanent leases (UPnP error 725) are handled, and error 718 is
+  reported as a port clash.
+- **Network checks:** it finds this PC's local address (from the route to the
+  internet), the default gateway (your router's settings page) and the public
+  address. It then compares the router's reported outside address with the
+  public one:
+  - `100.64.0.0/10` means carrier-grade NAT;
+  - a private address means a second router;
+  - a public address that doesn't match means a VPN or provider NAT.
+
+  These checks run even when the port mapping fails, so the message names the
+  real cause.
+- **Plain-English guides** (`relay/problem.go`) turn each case into a title,
+  explanation, numbered steps, a tip and technical details, all filled in with
+  your router address, PC address and port range.
+- **Connection test** (`relay.Test`): signs in to the relay's control port
+  with the password (the same PAKE handshake a transfer uses), reads the
+  advertised transfer ports, and opens a TCP connection to each one.
+
 ## Safety design
 
 - **croc's own protection:** croc v11 normalises every incoming path
@@ -503,9 +736,16 @@ go test ./...
 - `transfer/safety_test.go`: path validation, rename-on-collision,
   never-overwrite, escaping-symlink removal (the symlink case skips on Windows
   without Developer Mode).
+- `relay/relay_test.go`: connection-code parsing, how each router answer is
+  classified (no UPnP, refused, clash, carrier-grade NAT, double NAT, VPN), the
+  filled-in manual steps, port-in-use detection, the connection test (right
+  password, wrong password, relay stopped), and a **real file transfer through
+  a hosted relay** with LAN discovery off, so the relay has to carry it.
 - `ui/ui_test.go`: builds the real window with Fyne's software renderer and
-  walks every screen. Set `TTS_SCREENSHOTS=<dir>` to save PNGs; that's how the
-  images in this README were made.
+  walks every screen. This includes starting a real relay from the Host tab on
+  a machine with no UPnP router (the manual guide must appear) and connecting
+  to it from the Connect tab. Set `TTS_SCREENSHOTS=<absolute dir>` to save
+  PNGs; that's how the images in this README were made.
 
 ## Continuous integration and releases
 
@@ -522,8 +762,8 @@ Binaries are uploaded as workflow artifacts. To publish a release, push a
 version tag:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 The workflow stamps the version into each binary and attaches

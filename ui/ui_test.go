@@ -206,3 +206,47 @@ func waitFor(t *testing.T, cond func() bool) {
 	}
 	t.Fatal("condition not met")
 }
+
+// TestReadmeScreens renders the Host and Connect tabs in fixed states for the
+// README. Run with TTS_SCREENSHOTS=docs/screenshots to regenerate them.
+func TestReadmeScreens(t *testing.T) {
+	cfgDir := t.TempDir()
+	t.Setenv("APPDATA", cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+
+	fa := test.NewApp()
+	defer fa.Quit()
+	fa.Settings().SetTheme(theme.DefaultTheme())
+	a := newApp(fa)
+	a.win.Resize(fyne.NewSize(760, 620))
+	a.win.Show()
+	shot := screenshotter(t, a)
+
+	base := relay.Status{Port: 9009, Password: "amber-falcon-ridge", LocalIP: "192.168.1.42",
+		RouterIP: "192.168.1.1", PublicIP: "203.0.113.5", Checked: true}
+
+	a.hostView.port.SetText("9009")
+	a.hostView.pass.SetText(base.Password)
+	ok := base
+	ok.Opened, ok.Method = true, relay.MethodUPnP
+	a.setHost(relay.NewDemo(ok))
+	a.tabs.SelectIndex(2)
+	a.hostView.render()
+	shot("host")
+
+	bad := base
+	bad.Problem = relay.DemoManualForwardProblem(bad.LocalIP, bad.RouterIP, bad.Port)
+	a.setHost(relay.NewDemo(bad))
+	a.hostView.render()
+	a.win.Resize(fyne.NewSize(760, 1060))
+	shot("host-ports")
+	a.win.Resize(fyne.NewSize(760, 620))
+	a.stopHosting()
+
+	a.cfg.RelayAddress, a.cfg.RelayPassword = "203.0.113.5:9009", "amber-falcon-ridge"
+	a.connect.refresh()
+	a.connect.setResult(true, "Connected. Your transfers now go through the relay at 203.0.113.5:9009. "+
+		"Your friend needs to use the same relay, so make sure they're hosting it or connected to it too.")
+	a.tabs.SelectIndex(3)
+	shot("connect")
+}

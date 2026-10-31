@@ -40,12 +40,12 @@
           "0409": {
             "CompanyName": "Troopers",
             "FileDescription": "Troopers Transfer",
-            "FileVersion": "1.0.0",
+            "FileVersion": "1.1.0",
             "InternalName": "TroopersTransfer",
             "LegalCopyright": "Built on croc by Zack Scholl (MIT License)",
             "OriginalFilename": "TroopersTransfer.exe",
             "ProductName": "Troopers Transfer",
-            "ProductVersion": "1.0.0"
+            "ProductVersion": "1.1.0"
           }
         }
       }

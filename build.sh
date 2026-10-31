@@ -4,7 +4,7 @@
 # macOS needs: Xcode command line tools.
 set -eu
 cd "$(dirname "$0")"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.1.0}"
 mkdir -p dist
 CGO_ENABLED=1 go build -trimpath \
   -ldflags "-s -w -X github.com/troopers/transfer-service/ui.Version=${VERSION}" \
