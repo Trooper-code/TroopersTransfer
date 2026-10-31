@@ -101,9 +101,10 @@ func TestScreens(t *testing.T) {
 	shot("7-settings")
 }
 
-// TestHostAndConnect starts a real relay from the Host tab (the test machine
-// has no UPnP router, so the manual port-forwarding guide must appear), then
-// checks the Connect tab picks the relay up and syncs with Settings.
+// TestHostAndConnect starts a real relay from the Host tab, then checks the
+// Connect tab can test and use it. Automatic port opening is off so the test
+// doesn't depend on the build machine's network; the router logic is covered
+// by relay's unit tests.
 func TestHostAndConnect(t *testing.T) {
 	cfgDir := t.TempDir()
 	t.Setenv("APPDATA", cfgDir)
@@ -123,15 +124,15 @@ func TestHostAndConnect(t *testing.T) {
 	shot("8-host-idle")
 
 	a.hostView.port.SetText("29109")
-	a.hostView.autoOpen.SetChecked(true)
+	a.hostView.autoOpen.SetChecked(false)
 	test.Tap(a.hostView.startBtn)
 	waitForLong(t, func() bool { return a.host != nil })
 	defer a.stopHosting()
-	shot("9-host-problem")
+	shot("9-host-running")
 
 	st := a.host.Status()
-	if st.Problem == nil || st.Problem.Kind != relay.ProblemNoUPnP {
-		t.Fatalf("expected the manual port-forwarding guide, got %+v", st.Problem)
+	if st.Checked || st.Problem != nil {
+		t.Fatalf("auto-open was off, so nothing should be checked: %+v", st)
 	}
 	if s := a.settings(); s.RelayAddress != "127.0.0.1:29109" || s.RelayPassword != st.Password {
 		t.Fatalf("own transfers should use the local relay, got %+v", s)
