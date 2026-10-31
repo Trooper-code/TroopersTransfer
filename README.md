@@ -34,7 +34,7 @@ plain-English, step-by-step help when your router won't cooperate.
 
 ## Table of contents
 
-- [What's new in 1.1](#whats-new-in-11)
+- [What's new in 1.3](#whats-new-in-11)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Download](#download)
