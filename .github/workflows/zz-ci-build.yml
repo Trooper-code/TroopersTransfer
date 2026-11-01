@@ -1,0 +1,30 @@
+name: ci-build
+on:
+  push:
+    branches: [ci-build]
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        shell: bash
+        run: |
+          mkdir -p out
+          (go vet ./... && go test -count=1 ./...) > out/test-windows.txt 2>&1; echo "exit=$?" >> out/test-windows.txt
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1 -Version 1.2.0
+      - name: Publish
+        shell: bash
+        run: |
+          cd dist && 7z a ../out/TroopersTransfer-windows-amd64.zip TroopersTransfer.exe >/dev/null && cd ../out
+          git init -q -b ci-output
+          git config user.name ci && git config user.email ci@example.com
+          git add -A && git commit -qm "windows build"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-output
