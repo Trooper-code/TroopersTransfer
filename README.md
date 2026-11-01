@@ -26,7 +26,9 @@ registry writes, so it runs happily from a USB stick.
 
 It can also **host its own relay**: one click turns your PC into the server
 your friends transfer through, with the router ports opened for you, and
-plain-English, step-by-step help when your router won't cooperate.
+plain-English, step-by-step help when your router won't cooperate. Pick from
+nine **themes**, and keep it current with the built-in **updater**, which is
+also how new versions of croc reach you.
 
 <p align="center">
   <img src="docs/screenshots/send.png" alt="Sending files: the code phrase, a QR code and live progress" width="600">
@@ -34,7 +36,7 @@ plain-English, step-by-step help when your router won't cooperate.
 
 ## Table of contents
 
-- [What's new in 1.3](#whats-new-in-11)
+- [What's new](#whats-new)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Download](#download)
@@ -49,6 +51,8 @@ plain-English, step-by-step help when your router won't cooperate.
   - [Opening the ports by hand](#opening-the-ports-by-hand)
   - [Connecting to a friend's relay](#connecting-to-a-friends-relay)
   - [History](#history)
+  - [Themes](#themes)
+  - [Updates and croc upgrades](#updates-and-croc-upgrades)
   - [Settings](#settings)
 - [Security and privacy](#security-and-privacy)
 - [Self-hosting a croc relay](#self-hosting-a-croc-relay)
@@ -64,7 +68,28 @@ plain-English, step-by-step help when your router won't cooperate.
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
 
-## What's new in 1.3
+## What's new
+
+### 1.2.0
+
+- **Refreshed look.** Navigation moved to a sidebar, and a header shows
+  which relay you're on (public relays, a friend's relay, or your own). Every
+  tab is now a page of tidy cards. Everything works exactly as before; all
+  the existing buttons and settings are still there.
+- **Themes.** Nine to choose from: Midnight (the new default), Daylight,
+  Trooper, Forest, Ember, Nightshade, Ocean, High contrast, and System, which
+  follows your Windows light/dark setting. Pick one under
+  **Settings → Appearance**. It applies instantly and is remembered.
+- **Built-in updates.** **Settings → Updates → Check for updates** finds the
+  newest release on GitHub, downloads it and restarts into it.
+- **croc upgrades.** croc is built into the app, so new croc versions now
+  arrive through those updates. The Updates card shows which croc is built
+  in and the latest croc release. On GitHub, the new **Update croc** workflow
+  upgrades croc, tests it and builds a version to try, in one click.
+- **Verified downloads.** Releases now include a `.sha256` checksum, and the
+  updater refuses a download that doesn't match.
+
+### 1.1.0 – 1.1.3
 
 - **Host tab.** Run a croc relay on your own PC with one click. The app opens
   the ports on your router automatically (UPnP, with NAT-PMP as a fallback),
@@ -81,7 +106,7 @@ plain-English, step-by-step help when your router won't cooperate.
 - **Linux CI fixed.** The Linux build now installs the Wayland headers that
   GLFW 3.4 needs.
 
-**1.1.1 – 1.1.3**
+**Fixes in 1.1.1 – 1.1.3**
 
 - **Finds more routers.** As well as the usual UPnP search, the app now asks
   your router directly at its own address, and sends its multicast search
@@ -124,11 +149,20 @@ plain-English, step-by-step help when your router won't cooperate.
   network.
 - **Connect with one code.** Friends paste your connection code into the
   Connect tab. It's tested before it's used, and any problem is explained.
+- **Themes.** Nine themes, including a light one, a high-contrast one and
+  one that follows Windows.
+- **One-click updates.** Checks GitHub, verifies the download, swaps the exe
+  and restarts. New croc versions arrive the same way.
 - **Truly portable.** Settings live in a JSON file next to the exe.
 - **Session history** of everything you sent and received.
 - **Cross-platform.** Windows, Linux and macOS from one Go codebase.
 
 ## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/themes.png" alt="The nine themes: Midnight, Daylight, Trooper, Forest, Ember, Nightshade, Ocean, High contrast and System" width="760"><br>
+  <em>Midnight, Daylight, Trooper, Forest, Ember, Nightshade, Ocean, High contrast and System.</em>
+</p>
 
 | Host a relay | Connect to a friend's relay |
 |---|---|
@@ -420,10 +454,88 @@ The **History** tab lists this session's transfers, newest first: what was
 sent or received, how big it was, the code used, and whether it succeeded.
 History is kept in memory only and is never written to disk.
 
+### Themes
+
+Open **Settings → Appearance** and pick a theme from the list, or click one
+of the theme buttons. Each button shows the theme's background, card and
+accent colours. The theme changes instantly, and the choice is saved, so it's
+there next time.
+
+| Theme | Look |
+|---|---|
+| **Midnight** (default) | Deep navy with a blue accent |
+| **Daylight** | Light grey and white with a blue accent |
+| **Trooper** | Dark olive with a khaki accent |
+| **Forest** | Dark green with a green accent |
+| **Ember** | Dark brown with an orange accent |
+| **Nightshade** | Dark purple with a lilac accent |
+| **Ocean** | Dark teal with an aqua accent |
+| **High contrast** | Black and white with a yellow accent, for readability |
+| **System** | Fyne's standard colours, following Windows' light or dark mode |
+
+### Updates and croc upgrades
+
+<p align="center">
+  <img src="docs/screenshots/settings.png" alt="Settings page with the Appearance card" width="600">
+</p>
+
+croc isn't a separate program inside Troopers Transfer: it's built into the
+exe. The app also hooks into some of croc's internals (that's how
+Accept/Decline works), so each new croc version has to be tested before it
+ships. New croc versions therefore reach you as **Troopers Transfer
+updates**.
+
+**In the app:** open **Settings → Updates**.
+
+- The card shows **this version** and the **croc version built in**.
+- **Check for updates** asks GitHub for the newest release. It also shows the
+  latest croc release. If that's newer than the croc built in, it says a
+  future update will bring it.
+- If a newer Troopers Transfer is out, click **Update to … and restart**. The
+  app then:
+  1. downloads the release for your system, with a progress bar;
+  2. checks it against the release's `.sha256` checksum, when there is one;
+  3. replaces the exe, keeping the old one as `TroopersTransfer.exe.old`
+     until the next start, then deletes it;
+  4. restarts into the new version.
+- If a transfer is running or you're hosting, it asks first, because the
+  restart stops both.
+- If anything goes wrong (no internet, a damaged download, a folder it can't
+  write to), nothing is replaced and it says what to do. If the app is in a
+  protected folder like `Program Files`, move it somewhere you own, such as
+  Desktop or Documents, or download the update from the
+  [Releases](../../releases) page.
+- **Releases page** opens the GitHub releases.
+
+Nothing is checked unless you click **Check for updates**.
+
+**On GitHub (for the maintainer):** to move to a newer croc, open the repo's
+**Actions** tab, choose **Update croc**, and click **Run workflow**. Leave the
+version blank for the newest croc v11 release, or enter one such as
+`v11.6.0`. The workflow:
+
+1. upgrades croc and runs every test with it, on Linux and Windows;
+2. pushes an `update-croc-<version>` branch and opens a pull request;
+3. uploads a Windows build to the run's **Artifacts**, so you can try a real
+   transfer.
+
+Nothing reaches `main` until you merge the pull request. Then publish a
+release as usual, and everyone's **Check for updates** button offers it. If
+the tests fail, nothing is pushed and the run shows which test broke, usually
+because croc changed something the app hooks into. A new major version
+(croc v12) needs a code change rather than this workflow.
+
+> [!TIP]
+> For GitHub Actions to open the pull request, enable **Settings → Actions →
+> General → Allow GitHub Actions to create and approve pull requests**. If
+> it's off, the run summary links to the branch so you can open the pull
+> request yourself.
+
 ### Settings
 
 | Setting | Meaning |
 |---|---|
+| Theme | The app's colours (see [Themes](#themes)). Applies instantly; saved straight away. |
 | Relay address | Leave blank for croc's public relays. Set `host:port` to use your own relay. **Both sides must use the same relay.** |
 | Relay password | The password your relay was started with. Blank = croc's default. |
 | Zip folders before sending | Sends each folder as a single zip that's unpacked on arrival. Faster for many small files. |
@@ -453,7 +565,8 @@ Example `TroopersTransfer.json`:
   "receive_folder": "D:\\Incoming",
   "host_port": 9009,
   "host_password": "amber-falcon-ridge",
-  "host_no_auto_open": false
+  "host_no_auto_open": false,
+  "theme": "Midnight"
 }
 ```
 
@@ -484,6 +597,11 @@ Example `TroopersTransfer.json`:
   address from `api.ipify.org`, `ipv4.icanhazip.com` or `ifconfig.me`. Nothing
   else is sent. **Check my ports online** and **Router guides** just open a
   page in your browser when you click them.
+- **Updates:** the app only contacts GitHub (`api.github.com`, and GitHub's
+  download servers) when you click **Check for updates** or install an update.
+  There's no automatic or background checking. Downloads are checked against
+  the release's SHA-256 checksum when one is published, and a failed or
+  mismatched download is never installed.
 - **Hosting:** a hosted relay only forwards encrypted data. It can't read your
   friends' files, and they can't read yours. The relay password keeps strangers
   from using it. Router ports are open only while you're hosting, use one-hour
@@ -593,7 +711,7 @@ winget install BrechtSanders.WinLibs.POSIX.UCRT   # MinGW-w64 gcc
 Open a new terminal so `go` and `gcc` are on `PATH`, then:
 
 ```powershell
-.\build.ps1 -Version 1.1.3
+.\build.ps1 -Version 1.2.0
 ```
 
 This produces `dist\TroopersTransfer.exe`. The script:
@@ -665,9 +783,10 @@ Set `TTS_DEBUG=1` for croc's debug log.
 ```
 .
 ├── main.go                 entry point
-├── ui/                     Fyne GUI: send, receive, host, connect, progress, history, settings
+├── ui/                     Fyne GUI: pages, themes, updates card, header and sidebar
 ├── transfer/               croc wrapper: callbacks, friendly errors, safety checks
 ├── relay/                  hosted relay: in-app croc relay, UPnP/NAT-PMP, network checks, plain-English guides
+├── updater/                self-update from GitHub releases: check, download, verify, swap the exe
 ├── config/                 portable JSON settings, Downloads folder lookup
 ├── assets/                 embedded app icon
 ├── tools/genicon/          program that draws assets/icon.png
@@ -676,7 +795,7 @@ Set `TTS_DEBUG=1` for croc's debug log.
 ├── docs/screenshots/       images used in this README
 ├── build.ps1               Windows build script
 ├── build.sh                Linux/macOS build script
-└── .github/workflows/      CI: test + build for all three platforms
+└── .github/workflows/      CI: test + build for all three platforms; Update croc
 ```
 
 ## How the croc integration works
@@ -807,8 +926,16 @@ go test ./...
   are forwarded to this PC, a port clash (error 718) rolls back the ports
   already opened, mappings are removed on close, and the technical details
   report what discovery saw when nothing answers.
+- `updater/updater_test.go`: version comparison (including `V`-prefixed and
+  `dev` versions) and a fake GitHub that serves a release. It checks the right
+  file is picked for this platform and that installing replaces the exe and
+  keeps the old one. It also checks that a checksum mismatch, a damaged
+  archive or a missing download for your system leaves the current version
+  untouched.
 - `ui/ui_test.go`: builds the real window with Fyne's software renderer and
-  walks every screen. This includes starting a real relay from the Host tab
+  walks every screen. It applies every theme (each is saved, and colours
+  that are drawn directly follow the theme) and checks the Updates card's
+  logic for newer, same and missing-download releases. This includes starting a real relay from the Host tab
   and connecting to it from the Connect tab (right and wrong passwords), plus
   fixed demo states for the README screenshots. Set `TTS_SCREENSHOTS=<absolute dir>` to save
   PNGs; that's how the images in this README were made.
@@ -828,13 +955,24 @@ Binaries are uploaded as workflow artifacts. To publish a release, push a
 version tag:
 
 ```bash
-git tag v1.1.3
-git push origin v1.1.3
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 The workflow stamps the version into each binary and attaches
 `TroopersTransfer-<platform>.zip` / `.tar.gz` to a GitHub release
-automatically.
+automatically, each with a `.sha256` checksum that the in-app updater checks.
+Use a lowercase `v` in tags: the workflow only runs for tags starting with
+`v`.
+
+If you upload release files by hand, name the archive
+`TroopersTransfer-windows-amd64.zip` so the in-app updater finds it.
+Versioned names like `TroopersTransfer-v1.2.0-windows-amd64.zip` also work.
+Adding a `.sha256` file is optional.
+
+[`.github/workflows/update-croc.yml`](.github/workflows/update-croc.yml) is
+the one-click croc upgrade described in
+[Updates and croc upgrades](#updates-and-croc-upgrades).
 
 ## Contributing
 
