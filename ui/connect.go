@@ -64,16 +64,11 @@ func newConnectView(a *App) *connectView {
 	form := widget.NewForm(widget.NewFormItem("Connection code",
 		container.NewBorder(nil, nil, nil, v.paste, v.code)))
 
-	v.content = container.NewPadded(container.NewVBox(
-		intro,
-		widget.NewSeparator(),
-		v.current,
-		v.note,
-		widget.NewSeparator(),
-		form,
-		container.NewHBox(v.connect, v.test, v.public),
-		v.result,
-	))
+	v.content = scrollPage("Connect", intro.Text,
+		section("Current relay", "", v.current, v.note, container.NewHBox(v.public)),
+		section("Connect to a friend's relay", "Paste the connection code from their Host tab.",
+			form, container.NewHBox(v.connect, v.test), v.result),
+	)
 	v.refresh()
 	return v
 }

@@ -39,10 +39,7 @@ func newProgressPanel(onCancel func()) *progressPanel {
 
 	header := container.NewBorder(nil, nil, p.title, p.cancel, p.status)
 	bars := container.NewStack(p.bar, p.wait)
-	p.content = container.NewVBox(
-		widget.NewSeparator(),
-		container.NewPadded(container.NewVBox(header, bars, p.file, p.stats)),
-	)
+	p.content = container.NewPadded(newBox(container.NewVBox(header, bars, p.file, p.stats)))
 	p.content.Hide()
 	return p
 }

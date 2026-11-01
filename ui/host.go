@@ -91,14 +91,10 @@ func newHostView(a *App) *hostView {
 
 	v.status = container.NewVBox()
 
-	v.content = container.NewVScroll(container.NewPadded(container.NewVBox(
-		intro,
-		form,
-		portsHint,
-		v.startBtn,
-		widget.NewSeparator(),
-		v.status,
-	)))
+	v.content = scrollPage("Host", intro.Text,
+		section("Relay settings", "", form, portsHint, v.startBtn),
+		section("Status", "", v.status),
+	)
 	v.render()
 	return v
 }

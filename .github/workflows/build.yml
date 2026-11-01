@@ -77,10 +77,14 @@ jobs:
         run: |
           cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            7z a "../TroopersTransfer-${{ matrix.name }}.zip" TroopersTransfer.exe
+            f="TroopersTransfer-${{ matrix.name }}.zip"
+            7z a "../$f" TroopersTransfer.exe
           else
-            tar czf "../TroopersTransfer-${{ matrix.name }}.tar.gz" TroopersTransfer
+            f="TroopersTransfer-${{ matrix.name }}.tar.gz"
+            tar czf "../$f" TroopersTransfer
           fi
+          # Checksum file the in-app updater verifies downloads against.
+          cd .. && (sha256sum "$f" 2>/dev/null || shasum -a 256 "$f") > "$f.sha256"
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')

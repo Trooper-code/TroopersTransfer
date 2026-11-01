@@ -86,13 +86,14 @@ func newSettingsView(a *App) *settingsView {
 	})
 	save.Importance = widget.HighImportance
 
-	relayHelp := widget.NewLabel("Only change these if you run your own croc relay. Both computers must use the same relay and password. " +
-		"The Connect tab fills these in for you from a friend's connection code.")
-	relayHelp.Wrapping = fyne.TextWrapWord
+	relayHelp := "Only change these if you run your own croc relay. Both computers must use the same relay and password. " +
+		"The Connect tab fills these in for you from a friend's connection code."
 
 	form := widget.NewForm(
 		widget.NewFormItem("Relay address", relay),
 		widget.NewFormItem("Relay password", pass),
+	)
+	transfers := widget.NewForm(
 		widget.NewFormItem("", zip),
 		widget.NewFormItem("Default save folder", container.NewBorder(nil, nil, nil,
 			container.NewHBox(chooseFolder, resetFolder), folderLabel)),
@@ -100,15 +101,14 @@ func newSettingsView(a *App) *settingsView {
 	about := widget.NewLabel(config.AppName + " " + Version + " • built on croc (github.com/schollz/croc)")
 	about.Importance = widget.LowImportance
 
-	content := container.NewPadded(container.NewVBox(
-		widget.NewLabelWithStyle("Relay", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		relayHelp,
-		form,
-		save,
-		widget.NewSeparator(),
-		where,
-		about,
-	))
+	content := scrollPage("Settings", "Changes to the relay and transfer settings are saved when you click Save settings.",
+		newAppearanceSection(a),
+		section("Relay", relayHelp, form),
+		section("Transfers", "", transfers),
+		container.NewHBox(save),
+		newUpdatesView(a).content,
+		section("About", "", where, about),
+	)
 	return &settingsView{content: content, refresh: func() {
 		relay.SetText(cfg.RelayAddress)
 		pass.SetText(cfg.RelayPassword)

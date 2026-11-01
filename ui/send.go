@@ -41,6 +41,9 @@ type sendView struct {
 	clearBtn   *widget.Button
 
 	codePanel *fyne.Container
+	controls  fyne.CanvasObject // add/clear, code phrase and Send; hidden while sending
+	layout    *fyne.Container   // body + controls; re-laid out when controls hide
+	dropZone  *canvas.Rectangle
 	codeText  *canvas.Text
 	qr        *canvas.Image
 	code      string
@@ -90,14 +93,16 @@ func newSendView(a *App) *sendView {
 	)
 
 	// Dashed-looking drop zone shown while nothing is selected.
-	border := canvas.NewRectangle(color.Transparent)
-	border.StrokeColor = theme.Color(theme.ColorNamePrimary)
-	border.StrokeWidth = 2
-	border.CornerRadius = 12
+	v.dropZone = canvas.NewRectangle(color.Transparent)
+	v.dropZone.StrokeWidth = 2
+	v.dropZone.CornerRadius = 12
 	hint := widget.NewLabelWithStyle("Drag and drop files or folders here", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
-	sub := widget.NewLabelWithStyle("or use the buttons below", fyne.TextAlignCenter, fyne.TextStyle{Italic: true})
-	v.empty = container.NewStack(border, container.NewCenter(container.NewVBox(
-		container.NewCenter(widget.NewIcon(theme.UploadIcon())), hint, sub)))
+	hint.SizeName = theme.SizeNameSubHeadingText
+	sub := widget.NewLabelWithStyle("or use Add files / Add folder below", fyne.TextAlignCenter, fyne.TextStyle{})
+	sub.Importance = widget.LowImportance
+	bigIcon := widget.NewIcon(theme.UploadIcon())
+	v.empty = container.NewStack(v.dropZone, container.NewCenter(container.NewVBox(
+		container.NewCenter(container.NewGridWrap(fyne.NewSize(56, 56), bigIcon)), hint, sub)))
 
 	v.summary = widget.NewLabelWithStyle("", fyne.TextAlignTrailing, fyne.TextStyle{})
 	v.summary.Truncation = fyne.TextTruncateEllipsis
@@ -108,7 +113,7 @@ func newSendView(a *App) *sendView {
 	v.sendBtn.Importance = widget.HighImportance
 
 	v.codeText = canvas.NewText("", theme.Color(theme.ColorNamePrimary))
-	v.codeText.TextSize = 34
+	v.codeText.TextSize = 36
 	v.codeText.TextStyle = fyne.TextStyle{Bold: true, Monospace: true}
 	v.codeText.Alignment = fyne.TextAlignCenter
 	var copyBtn *widget.Button
@@ -126,7 +131,7 @@ func newSendView(a *App) *sendView {
 	copyBtn.Importance = widget.HighImportance
 	v.qr = canvas.NewImageFromResource(nil)
 	v.qr.FillMode = canvas.ImageFillContain
-	v.qr.SetMinSize(fyne.NewSize(170, 170))
+	v.qr.SetMinSize(fyne.NewSize(160, 160))
 	// While sending, the code replaces the file list.
 	v.codePanel = container.NewCenter(container.NewHBox(
 		container.NewVBox(
@@ -140,12 +145,27 @@ func newSendView(a *App) *sendView {
 	))
 	v.codePanel.Hide()
 
-	body := container.NewStack(v.list, v.empty, v.codePanel)
+	body := newBox(container.NewStack(v.list, v.empty, v.codePanel))
 	buttons := container.NewBorder(nil, nil, container.NewHBox(v.addFiles, v.addFolder, v.clearBtn), nil, v.summary)
-	bottom := container.NewVBox(buttons, v.customCode, v.sendBtn)
-	v.content = container.NewPadded(container.NewBorder(nil, bottom, nil, nil, body))
+	bottom := newBox(container.NewVBox(buttons,
+		widget.NewForm(widget.NewFormItem("Code phrase", v.customCode)), v.sendBtn))
+	v.controls = container.NewPadded(bottom)
+	v.layout = container.NewBorder(nil, v.controls, nil, nil, body)
+	v.content = page("Send", "Add files or folders, click Send, and tell the other person the code phrase. Keep the app open until it finishes.",
+		v.layout)
+	v.restyle()
 	v.refresh()
 	return v
+}
+
+// restyle re-applies colours that are drawn directly rather than by
+// widgets, after a theme change.
+func (v *sendView) restyle() {
+	v.dropZone.StrokeColor = theme.Color(theme.ColorNamePrimary)
+	v.dropZone.FillColor = withAlpha(theme.Color(theme.ColorNamePrimary), 0x10)
+	v.dropZone.Refresh()
+	v.codeText.Color = theme.Color(theme.ColorNamePrimary)
+	v.codeText.Refresh()
 }
 
 func (v *sendView) add(path string) {
@@ -213,6 +233,12 @@ func (v *sendView) setBusy(busy bool) {
 	}
 	if !busy {
 		v.codePanel.Hide()
+	}
+	// The controls are all disabled while sending; hiding them gives the
+	// code phrase and QR code room next to the progress panel.
+	if v.controls != nil && v.controls.Visible() == busy {
+		setVisible(v.controls, !busy)
+		v.layout.Refresh()
 	}
 	v.layoutBody()
 }

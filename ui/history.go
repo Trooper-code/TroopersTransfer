@@ -91,7 +91,8 @@ func newHistoryView(a *App) *historyView {
 	)
 	h.list.OnSelected = func(widget.ListItemID) { h.list.UnselectAll() }
 	h.empty = widget.NewLabelWithStyle("Transfers you make this session will show up here.", fyne.TextAlignCenter, fyne.TextStyle{Italic: true})
-	h.content = container.NewPadded(container.NewStack(h.list, container.NewCenter(h.empty)))
+	h.content = page("History", "Transfers from this session, newest first. Nothing is saved to disk.",
+		newBox(container.NewStack(h.list, container.NewCenter(h.empty))))
 	return h
 }
 

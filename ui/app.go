@@ -5,10 +5,12 @@ package ui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
@@ -19,6 +21,7 @@ import (
 	"github.com/troopers/transfer-service/config"
 	"github.com/troopers/transfer-service/relay"
 	"github.com/troopers/transfer-service/transfer"
+	"github.com/troopers/transfer-service/updater"
 )
 
 // Version is set at build time with -ldflags "-X .../ui.Version=1.2.3".
@@ -41,12 +44,16 @@ type App struct {
 
 	host *relay.Host // non-nil while hosting a relay
 
+	status *pill // relay status in the header
+	header *box
+
 	root   *fyne.Container
 	cancel context.CancelFunc // non-nil while a transfer runs
 }
 
 // Run builds the window and blocks until it is closed.
 func Run() {
+	updater.CleanupOld()
 	newApp(app.NewWithID("com.troopers.transfer")).win.ShowAndRun()
 }
 
@@ -55,6 +62,7 @@ func newApp(fa fyne.App) *App {
 	fa.SetIcon(icon)
 
 	a := &App{fa: fa, cfg: config.Load()}
+	fa.Settings().SetTheme(themeFor(a.themeName()))
 	a.win = fa.NewWindow(config.AppName)
 	a.win.SetIcon(icon)
 
@@ -67,6 +75,7 @@ func newApp(fa fyne.App) *App {
 	a.hostView = newHostView(a)
 
 	a.sendTab = container.NewTabItemWithIcon("Send", theme.UploadIcon(), a.send.content)
+	a.status = newPill()
 	a.tabs = container.NewAppTabs(
 		a.sendTab,
 		container.NewTabItemWithIcon("Receive", theme.DownloadIcon(), a.recv.content),
@@ -76,9 +85,27 @@ func newApp(fa fyne.App) *App {
 		container.NewTabItemWithIcon("Settings", theme.SettingsIcon(), a.settingsView.content),
 	)
 
-	a.root = container.NewBorder(nil, a.progress.content, nil, nil, a.tabs)
+	a.tabs.SetTabLocation(container.TabLocationLeading)
+
+	logo := canvas.NewImageFromResource(icon)
+	logo.FillMode = canvas.ImageFillContain
+	logo.SetMinSize(fyne.NewSize(30, 30))
+	name := widget.NewLabel(config.AppName)
+	name.TextStyle = fyne.TextStyle{Bold: true}
+	name.SizeName = theme.SizeNameSubHeadingText
+	ver := widget.NewLabel(Version)
+	ver.Importance = widget.LowImportance
+	a.header = newBox(container.NewBorder(nil, nil,
+		container.NewHBox(logo, name, ver), container.NewCenter(a.status)))
+	a.header.pad = 1
+	a.header.radius = theme.SizeNameSelectionRadius
+	a.refreshStatus()
+
+	a.root = container.NewBorder(container.NewPadded(a.header), a.progress.content, nil, nil, a.tabs)
 	a.win.SetContent(a.root)
-	a.win.Resize(fyne.NewSize(760, 620))
+	a.win.Resize(fyne.NewSize(920, 700))
+	// Some pieces draw with fixed colours; restyle them when the theme changes.
+	fa.Settings().AddListener(func(fyne.Settings) { fyne.Do(a.send.restyle) })
 	a.win.CenterOnScreen()
 
 	a.win.SetOnDropped(func(_ fyne.Position, uris []fyne.URI) {
@@ -130,10 +157,43 @@ func (a *App) settings() transfer.Settings {
 
 func (a *App) hosting() bool { return a.host != nil }
 
+func (a *App) themeName() string {
+	if a.cfg.Theme == "" {
+		return DefaultTheme
+	}
+	return a.cfg.Theme
+}
+
+// setTheme applies and saves a theme picked in Settings.
+func (a *App) setTheme(name string) {
+	a.cfg.Theme = name
+	a.fa.Settings().SetTheme(themeFor(name))
+	_ = a.cfg.Save()
+}
+
+// refreshStatus updates the relay pill in the header.
+func (a *App) refreshStatus() {
+	if a.status == nil {
+		return
+	}
+	switch {
+	case a.host != nil:
+		a.status.set(fmt.Sprintf("Hosting a relay on port %d", a.host.Status().Port), widget.SuccessImportance)
+	case a.cfg.RelayAddress != "":
+		a.status.set("Using relay "+a.cfg.RelayAddress, widget.HighImportance)
+	default:
+		a.status.set("Using the public relays", widget.MediumImportance)
+	}
+	if a.header != nil {
+		a.header.Refresh() // re-measure: the text may have grown
+	}
+}
+
 // setHost records a newly started relay. Must be called on the UI goroutine.
 func (a *App) setHost(h *relay.Host) {
 	a.host = h
 	a.connect.refresh()
+	a.refreshStatus()
 }
 
 // stopHosting shuts down the relay and closes the router ports, if hosting.
@@ -146,12 +206,14 @@ func (a *App) stopHosting() {
 	if a.connect != nil {
 		a.connect.refresh()
 	}
+	a.refreshStatus()
 }
 
 // relayChanged refreshes every view that shows the chosen relay.
 func (a *App) relayChanged() {
 	a.connect.refresh()
 	a.settingsView.refresh()
+	a.refreshStatus()
 }
 
 func (a *App) busy() bool { return a.cancel != nil }
@@ -195,8 +257,9 @@ func (a *App) showError(title string, err error) {
 	msg := widget.NewLabel(err.Error())
 	msg.Wrapping = fyne.TextWrapWord
 	content := container.NewVBox(msg)
-	var fe *transfer.FriendlyError
-	if errors.As(err, &fe) && fe.Details() != "" && fe.Details() != fe.Message {
+	// Friendly errors (transfer, updater) carry technical details.
+	var fe interface{ Details() string }
+	if errors.As(err, &fe) && fe.Details() != "" && fe.Details() != err.Error() {
 		details := widget.NewLabel(fe.Details())
 		details.Wrapping = fyne.TextWrapWord
 		details.TextStyle = fyne.TextStyle{Monospace: true}

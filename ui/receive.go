@@ -54,7 +54,8 @@ func newReceiveView(a *App) *receiveView {
 		widget.NewFormItem("Code phrase", container.NewBorder(nil, nil, nil, v.paste, v.code)),
 		widget.NewFormItem("Save to", container.NewBorder(nil, nil, nil, container.NewHBox(v.changeDest, openDest), v.destLabel)),
 	)
-	v.content = container.NewPadded(container.NewVBox(help, form, v.recvBtn))
+	v.content = scrollPage("Receive", "Get files someone is sending you.",
+		section("Enter the code", help.Text, form, v.recvBtn))
 	v.setBusy(false)
 	return v
 }

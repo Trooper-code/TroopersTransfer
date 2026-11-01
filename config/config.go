@@ -30,6 +30,8 @@ type Config struct {
 	HostPassword   string `json:"host_password,omitempty"`     // kept so the connection code stays the same
 	HostNoAutoOpen bool   `json:"host_no_auto_open,omitempty"` // true = don't try UPnP / NAT-PMP
 
+	Theme string `json:"theme,omitempty"` // "" = the default theme
+
 	path string
 }
 

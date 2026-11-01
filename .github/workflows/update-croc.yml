@@ -1,0 +1,122 @@
+# One-click croc upgrade: Actions tab → "Update croc" → Run workflow.
+#
+# It bumps croc, runs every test (the app hooks into croc's internals, so a
+# new croc must pass them), pushes an update-croc-<version> branch, opens a
+# pull request, and builds a Windows exe to try before you merge and release.
+# Nothing reaches main until you merge the pull request.
+name: Update croc
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "croc version (e.g. v11.6.0). Leave blank for the newest v11 release."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      branch: ${{ steps.bump.outputs.branch }}
+      new: ${{ steps.bump.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Bump croc
+        id: bump
+        shell: bash
+        run: |
+          OLD=$(go list -m -f '{{.Version}}' github.com/schollz/croc/v11)
+          TARGET="${{ inputs.version }}"
+          [ -z "$TARGET" ] && TARGET=latest
+          go get "github.com/schollz/croc/v11@${TARGET}"
+          go mod tidy
+          NEW=$(go list -m -f '{{.Version}}' github.com/schollz/croc/v11)
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "branch=update-croc-$NEW" >> "$GITHUB_OUTPUT"
+          if [ "$OLD" = "$NEW" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "### croc is already at $NEW — nothing to do" >> "$GITHUB_STEP_SUMMARY"
+            echo "A new major version (v12+) needs a code change; this workflow only updates within v11." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "### Updating croc $OLD → $NEW" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Linux dependencies
+        if: steps.bump.outputs.changed == 'true'
+        run: sudo apt-get update && sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
+
+      - name: Test with the new croc
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Push branch
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${{ steps.bump.outputs.branch }}"
+          git commit -am "Update croc to ${{ steps.bump.outputs.new }}"
+          git push -f origin "${{ steps.bump.outputs.branch }}"
+
+      - name: Open pull request
+        if: steps.bump.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="${{ steps.bump.outputs.branch }}"
+          if ! gh pr view "$BRANCH" >/dev/null 2>&1; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "Update croc to ${{ steps.bump.outputs.new }}" \
+              --body "Updates croc from ${{ steps.bump.outputs.old }} to ${{ steps.bump.outputs.new }}. All tests passed with the new version. Download the Windows build from the workflow run's artifacts, try a transfer, then merge and publish a release. The app's **Check for updates** button will then offer it to users."
+          fi
+          echo "Pull request: $(gh pr view "$BRANCH" --json url -q .url)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: If no pull request was opened
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          echo "If no pull request link appears above, allow it under Settings → Actions → General → 'Allow GitHub Actions to create and approve pull requests', or open one yourself:" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ github.server_url }}/${{ github.repository }}/compare/main...${{ steps.bump.outputs.branch }}" >> "$GITHUB_STEP_SUMMARY"
+
+  windows-build:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update.outputs.branch }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test on Windows
+        shell: bash
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TroopersTransfer-windows-amd64-croc-${{ needs.update.outputs.new }}
+          path: dist/TroopersTransfer.exe

@@ -3,7 +3,7 @@
 #   winget install GoLang.Go
 #   winget install BrechtSanders.WinLibs.POSIX.UCRT
 param(
-    [string]$Version = "1.1.3",
+    [string]$Version = "1.2.0",
     [string]$Arch = "amd64"
 )
 $ErrorActionPreference = "Stop"

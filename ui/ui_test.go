@@ -15,6 +15,7 @@ import (
 
 	"github.com/troopers/transfer-service/relay"
 	"github.com/troopers/transfer-service/transfer"
+	"github.com/troopers/transfer-service/updater"
 )
 
 // TestScreens builds the real window with Fyne's software renderer and walks
@@ -250,4 +251,79 @@ func TestReadmeScreens(t *testing.T) {
 		"Your friend needs to use the same relay, so make sure they're hosting it or connected to it too.")
 	a.tabs.SelectIndex(3)
 	shot("connect")
+}
+
+// TestThemes applies every theme, checks it's saved and that colours drawn
+// directly (the drop zone) follow it, and renders a screenshot of each.
+func TestThemes(t *testing.T) {
+	cfgDir := t.TempDir()
+	t.Setenv("APPDATA", cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	fa := test.NewApp()
+	defer fa.Quit()
+	a := newApp(fa)
+	a.win.Resize(fyne.NewSize(760, 620))
+	a.win.Show()
+	shot := screenshotter(t, a)
+
+	if a.themeName() != DefaultTheme && a.cfg.Theme == "" {
+		t.Fatalf("default theme = %q", a.themeName())
+	}
+	for _, name := range ThemeNames() {
+		a.setTheme(name)
+		fyne.DoAndWait(a.send.restyle)
+		if a.cfg.Theme != name {
+			t.Fatalf("theme %q not saved", name)
+		}
+		want := theme.Color(theme.ColorNamePrimary)
+		if p, ok := findPalette(name); ok {
+			want = p.Primary
+			if got := fa.Settings().Theme().Color(theme.ColorNameBackground, theme.VariantDark); got != p.Background {
+				t.Errorf("%s: background %v, want %v", name, got, p.Background)
+			}
+		}
+		if a.send.dropZone.StrokeColor != want {
+			t.Errorf("%s: drop zone not restyled", name)
+		}
+		shot("theme-" + strings.ReplaceAll(strings.ToLower(name), " ", "-"))
+	}
+	// An unknown name (old or hand-edited settings) falls back safely.
+	if th := themeFor("No such theme"); th.Color(theme.ColorNamePrimary, theme.VariantDark) != palettes[0].Primary {
+		t.Error("unknown theme should fall back to the default")
+	}
+}
+
+func TestUpdatesView(t *testing.T) {
+	fa := test.NewApp()
+	defer fa.Quit()
+	a := newApp(fa)
+	v := newUpdatesView(a)
+
+	old := Version
+	defer func() { Version = old }()
+
+	Version = "1.0.0"
+	v.showRelease(&updater.Release{Tag: "V9.9.9", Version: "9.9.9", Notes: "new stuff",
+		Asset: &updater.Asset{Name: updater.AssetName(), URL: "http://x", Size: 1}})
+	if !v.install.Visible() || !strings.Contains(v.install.Text, "V9.9.9") || !v.notes.Visible() {
+		t.Fatalf("newer release should offer install: visible=%v text=%q", v.install.Visible(), v.install.Text)
+	}
+
+	Version = "9.9.9"
+	v.install.Hide()
+	v.showRelease(&updater.Release{Tag: "v9.9.9", Version: "9.9.9", Asset: &updater.Asset{}})
+	if v.install.Visible() || !strings.Contains(v.status.Text, "up to date") {
+		t.Fatalf("same version: install=%v status=%q", v.install.Visible(), v.status.Text)
+	}
+
+	Version = "1.0.0"
+	v.showRelease(&updater.Release{Tag: "v2.0.0", Version: "2.0.0"})
+	if v.install.Visible() || !strings.Contains(v.status.Text, "no download for your system") {
+		t.Fatalf("no asset: status=%q", v.status.Text)
+	}
+
+	v.showCroc("v99.0.0", nil)
+	if !v.crocLine.Visible() || !strings.Contains(v.crocLine.Text, "v99.0.0") {
+		t.Fatalf("croc line = %q", v.crocLine.Text)
+	}
 }
