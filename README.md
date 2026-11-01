@@ -859,4 +859,3 @@ Built on:
 - [Fyne](https://fyne.io) (BSD 3-Clause License)
 - [go-qrcode](https://github.com/skip2/go-qrcode) (MIT License)
 
-vibe coded by trooper, with ollama, gemma4 and claude
