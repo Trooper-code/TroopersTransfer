@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to write a useful report
+    url: https://github.com/Trooper-code/TroopersTransfer#reporting-bugs
+    about: What to include, and how to find your router's type, model number and firmware.

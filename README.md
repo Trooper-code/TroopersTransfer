@@ -34,8 +34,17 @@ also how new versions of croc reach you.
   <img src="docs/screenshots/send.png" alt="Sending files: the code phrase, a QR code and live progress" width="600">
 </p>
 
+> [!NOTE]
+> **Project status: feature-complete.** Sending, receiving, hosting your own
+> relay, connecting to a friend's relay, themes and updates are all in place.
+> From here on, work is limited to **bug reports and compatibility reports**
+> (for example, routers where hosting doesn't work). No new features are
+> planned. See [Reporting bugs](#reporting-bugs) for how to report a problem
+> so it can be fixed.
+
 ## Table of contents
 
+- [Project status](#project-status)
 - [What's new](#whats-new)
 - [Features](#features)
 - [Screenshots](#screenshots)
@@ -65,8 +74,33 @@ also how new versions of croc reach you.
 - [Safety design](#safety-design)
 - [Tests](#tests)
 - [Continuous integration and releases](#continuous-integration-and-releases)
+- [Reporting bugs](#reporting-bugs)
+  - [Every bug report](#every-bug-report)
+  - [Router and hosting problems](#router-and-hosting-problems)
+  - [Finding your router's details](#finding-your-routers-details)
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
+
+## Project status
+
+Troopers Transfer is **feature-complete**. Everything it set out to do is
+done:
+
+- sending and receiving files and folders with a code phrase;
+- hosting your own relay, including automatic port opening and step-by-step
+  help when that fails;
+- connecting to a friend's relay;
+- themes, and built-in updates that also deliver new croc versions.
+
+From now on I'm only working on:
+
+- **Bug reports:** something doesn't work the way this README says it should.
+- **Compatibility reports:** something doesn't work on your setup, most
+  often a router where hosting or automatic port opening fails, or a Windows
+  version where the app misbehaves.
+
+New feature requests won't be taken on. A good bug report is the best way to
+help; see [Reporting bugs](#reporting-bugs).
 
 ## What's new
 
@@ -974,9 +1008,74 @@ Adding a `.sha256` file is optional.
 the one-click croc upgrade described in
 [Updates and croc upgrades](#updates-and-croc-upgrades).
 
+## Reporting bugs
+
+[Open an Issue](../../issues/new/choose) and choose **Bug or compatibility
+report**. The form asks for everything below. The more of it you include,
+the faster the problem can be found and fixed.
+
+### Every bug report
+
+| Information | Where to find it |
+|---|---|
+| **Troopers Transfer version** | In the header next to the app name, or **Settings → Updates** |
+| **Windows version** | *Settings → System → About* in Windows, e.g. *Windows 11 23H2* |
+| **What you were doing** | Sending, receiving, hosting, connecting, changing a setting or updating |
+| **What you expected, and what happened instead** | In your own words |
+| **Steps to make it happen again** | If you can reproduce it |
+| **Error message and technical details** | Screenshot the message. If it has a **Technical details** expander, open it first; that text is the most useful part. |
+
+### Router and hosting problems
+
+Hosting and automatic port opening depend on your router, so router problems
+can only be fixed if I know exactly which router you have. Please include:
+
+| Information | Example | Required? |
+|---|---|---|
+| **Router type / brand** | ARRIS, Netgear, TP-Link, ASUS, Linksys, or your ISP's gateway (Xfinity, Spectrum, Cox, Verizon Fios…) | **Yes** |
+| **Model number** | *TG1682G*, *SBG8300*, *Archer AX55*, *RT-AX86U* | **Yes** |
+| **Firmware version** | *9.1.103AA72*, *1.1.2 Build 20230920* | If you can find it |
+
+> [!IMPORTANT]
+> **If you can't provide all three, I need at least the router type and the
+> model number.** The firmware version helps a lot, because the same model
+> can behave differently from one firmware update to the next, but the type
+> and model are the minimum. A router report without them usually can't be
+> acted on.
+
+For hosting problems, please also include:
+
+- the **heading shown in the Host tab** (for example *Couldn't open the
+  ports automatically*) and a screenshot of its **Technical details**;
+- whether **UPnP is turned on** in your router (and whether you clicked
+  **Save** and restarted the router after turning it on);
+- whether you **forwarded the ports yourself**, and if so what
+  **Check my ports online** said;
+- whether you use a **VPN**, and whether your router is plugged into another
+  router or an ISP modem;
+- the **starting port** you used, if it isn't 9009.
+
+### Finding your router's details
+
+- **Type and model number:** look at the **sticker on the bottom or back of
+  the router**. The model is usually labelled *Model*, *Model No.* or *M/N*.
+  It's also normally shown on the router's settings page.
+- **Firmware version:** sign in to the router's settings page (the Host tab
+  shows its address, often `http://192.168.0.1` or `http://192.168.1.1`) and
+  look under *Status*, *Gateway*, *System*, *Device Info* or *About*. It
+  may be called *Firmware*, *Software version* or *SW version*. On some ISP
+  gateways it's only in the ISP's app.
+- **Is it an ISP gateway?** If your internet company gave you the box, say
+  so and name the company, because ISPs often run their own firmware on
+  standard models.
+
+Please don't post your public IP address, connection codes or relay
+passwords in an Issue. Blur them in screenshots.
+
 ## Contributing
 
-Bug reports and pull requests are welcome.
+Bug reports are the main way to help (see [Reporting bugs](#reporting-bugs)).
+Pull requests that fix bugs or compatibility problems are welcome too:
 
 1. Fork the repository and create a branch: `git checkout -b my-change`.
 2. Make your change and run `go vet ./...` and `go test ./...`.

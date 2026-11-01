@@ -1,0 +1,83 @@
+name: Bug or compatibility report
+description: Something doesn't work, or doesn't work on your router or PC.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Troopers Transfer is feature-complete, so bug and compatibility reports are what keep it working.
+        **Please don't post your public IP address, connection codes or relay passwords.** Blur them in screenshots.
+  - type: input
+    id: version
+    attributes:
+      label: Troopers Transfer version
+      description: Shown in the header next to the app name, or in Settings → Updates.
+      placeholder: "1.2.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Windows Settings → System → About.
+      placeholder: "Windows 11 23H2"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: What were you doing?
+      options:
+        - Sending
+        - Receiving
+        - Hosting a relay (Host tab)
+        - Connecting to a relay (Connect tab)
+        - Settings / themes
+        - Updating
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include steps to make it happen again if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Error message and technical details
+      description: Paste or screenshot the message. If it has a "Technical details" expander, open it first; that text helps the most.
+  - type: markdown
+    attributes:
+      value: |
+        ### Router details (for hosting, port and connection problems)
+        **If you can't give all three, the router type and model number are the minimum I need.** The model is on the sticker on the router; firmware is on its settings page under Status, Gateway, System or About.
+  - type: input
+    id: router_type
+    attributes:
+      label: Router type / brand
+      description: e.g. ARRIS, Netgear, TP-Link, ASUS, or your ISP's gateway (say which ISP).
+      placeholder: "ARRIS (Xfinity gateway)"
+  - type: input
+    id: router_model
+    attributes:
+      label: Router model number
+      description: From the sticker (Model / Model No. / M/N).
+      placeholder: "TG1682G"
+  - type: input
+    id: router_firmware
+    attributes:
+      label: Router firmware version (if you can find it)
+      placeholder: "9.1.103AA72"
+  - type: checkboxes
+    id: hosting
+    attributes:
+      label: Hosting checks (if relevant)
+      options:
+        - label: UPnP is turned on in my router (and I saved and restarted it)
+        - label: I forwarded the ports myself
+        - label: "\"Check my ports online\" said Success"
+        - label: I use a VPN
+        - label: My router is plugged into another router or ISP modem
