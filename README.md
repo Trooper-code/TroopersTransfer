@@ -551,27 +551,6 @@ updates**.
 
 Nothing is checked unless you click **Check for updates**.
 
-**On GitHub (for the maintainer):** to move to a newer croc, open the repo's
-**Actions** tab, choose **Update croc**, and click **Run workflow**. Leave the
-version blank for the newest croc v11 release, or enter one such as
-`v11.6.0`. The workflow:
-
-1. upgrades croc and runs every test with it, on Linux and Windows;
-2. pushes an `update-croc-<version>` branch and opens a pull request;
-3. uploads a Windows build to the run's **Artifacts**, so you can try a real
-   transfer.
-
-Nothing reaches `main` until you merge the pull request. Then publish a
-release as usual, and everyone's **Check for updates** button offers it. If
-the tests fail, nothing is pushed and the run shows which test broke, usually
-because croc changed something the app hooks into. A new major version
-(croc v12) needs a code change rather than this workflow.
-
-> [!TIP]
-> For GitHub Actions to open the pull request, enable **Settings → Actions →
-> General → Allow GitHub Actions to create and approve pull requests**. If
-> it's off, the run summary links to the branch so you can open the pull
-> request yourself.
 
 ### Settings
 
