@@ -50,14 +50,6 @@ That's the whole philosophy: a powerful, secure tool, made simple enough for any
   <img src="docs/screenshots/send.png" alt="Sending files: the code phrase, a QR code and live progress" width="600">
 </p>
 
-> [!NOTE]
-> **Project status: feature-complete.** Sending, receiving, hosting your own
-> relay, connecting to a friend's relay, themes and updates are all in place.
-> From here on, work is limited to **bug reports and compatibility reports**
-> (for example, routers where hosting doesn't work). No new features are
-> planned. See [Reporting bugs](#reporting-bugs) for how to report a problem
-> so it can be fixed.
-
 ## Table of contents
 
 - [Project status](#project-status)
