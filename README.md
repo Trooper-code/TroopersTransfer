@@ -30,6 +30,22 @@ plain-English, step-by-step help when your router won't cooperate. Pick from
 nine **themes**, and keep it current with the built-in **updater**, which is
 also how new versions of croc reach you.
 
+## Why I made this
+
+I wanted a simple, safe way to send big files, to friends without either of us jumping through hoops.
+
+The tools that already exist all asked for something I didn't want to give. Cloud services want an account, upload your files to someone else's servers, and cap how much you can send. Chat apps squash or reject anything large. And the tools that *do* get it right, like [croc](https://github.com/schollz/croc), live in a command line. That's great if you're comfortable in a terminal, and a wall if you're not. I kept finding myself walking friends through commands just to send them one folder.
+
+So I built Troopers Transfer around three ideas:
+
+**Security shouldn't be optional.** Every transfer is end-to-end encrypted by croc, so nobody in the middle can read your files, not even the relay passing them along. You see exactly what's being sent to you and can decline before a single byte is saved. Unsafe file names are blocked automatically, and nothing ever overwrites a file you already have. If you'd rather your files never touch someone else's server at all, you can host your own relay with one click.
+
+**Simple tools should be accessible.** croc is excellent, and it deserves to be usable by people who've never opened a terminal. Drag files in, read out a three-word code, done. When something goes wrong, the app tells you in plain English what happened and what to do, including step-by-step help when your router won't cooperate, instead of an error code.
+
+**It shouldn't get in your way.** No account. No installer. No admin rights. No background services, no registry changes, no telemetry. It's a single exe you can run from your desktop or a USB stick, and it keeps its settings in one file next to itself. It doesn't phone home: it only goes online for your transfers, and when you click a button that needs to, like checking for updates. When you close it, it's gone.
+
+That's the whole philosophy: a powerful, secure tool, made simple enough for anyone to use, that respects your computer and your privacy.
+
 <p align="center">
   <img src="docs/screenshots/send.png" alt="Sending files: the code phrase, a QR code and live progress" width="600">
 </p>
