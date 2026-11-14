@@ -75,6 +75,7 @@ That's the whole philosophy: a powerful, secure tool, made simple enough for any
 - [Self-hosting a croc relay](#self-hosting-a-croc-relay)
 - [Troubleshooting](#troubleshooting)
 - [Building from source](#building-from-source)
+  - [Building on Linux](#building-on-linux)
 - [Developer CLI](#developer-cli)
 - [Project layout](#project-layout)
 - [How the croc integration works](#how-the-croc-integration-works)
@@ -745,12 +746,172 @@ This produces `dist\TroopersTransfer.exe`. The script:
   a post-link patch because linking a `.syso` clashes with the default
   manifest MinGW adds.
 
-### Linux
+### Building on Linux
+
+You need three things: a C compiler and graphics headers (Fyne draws the
+window with OpenGL through cgo), Go, and this repo. Ubuntu is the tested
+path, because the [CI](#continuous-integration-and-releases) builds every
+commit on `ubuntu-latest`. Other distros should work the same way once the
+right packages are installed.
+
+**1. Install the compiler and graphics headers**
+
+Debian, Ubuntu, Linux Mint, Pop!_OS and WSL (Ubuntu). These are the same
+packages the CI installs:
 
 ```bash
-sudo apt-get install gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
-./build.sh        # -> dist/TroopersTransfer
+sudo apt-get update
+sudo apt-get install -y git gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
 ```
+
+Fedora:
+
+```bash
+sudo dnf install git gcc mesa-libGL-devel libX11-devel libXcursor-devel libXrandr-devel \
+  libXinerama-devel libXi-devel libXxf86vm-devel libxkbcommon-devel wayland-devel
+```
+
+Arch, Manjaro and EndeavourOS:
+
+```bash
+sudo pacman -S --needed git base-devel mesa libx11 libxcursor libxrandr \
+  libxinerama libxi libxxf86vm libxkbcommon wayland
+```
+
+The Fedora and Arch lists aren't checked by CI. If one of them misses a
+package, the build stops with a missing `.h` file. See
+[Linux build problems](#linux-build-problems) below.
+
+**2. Get the code**
+
+```bash
+git clone https://github.com/Trooper-code/TroopersTransfer.git
+cd TroopersTransfer
+```
+
+**3. Install Go**
+
+The project needs the Go version listed in [`go.mod`](go.mod). Distro
+packages are often older than that, but that's usually fine: **any Go from
+1.21 on downloads the right version by itself** the first time you build.
+You'll see a line like `go: downloading go1.27.1` and then the build carries
+on.
+
+So the easiest route is your distro's package (`sudo apt-get install golang-go`,
+`sudo dnf install golang` or `sudo pacman -S go`), then check it works:
+
+```bash
+go version
+```
+
+If your distro's Go is older than 1.21, or you'd rather install the exact
+version, get the official build from [go.dev/dl](https://go.dev/dl/). Run
+this from inside the repo folder, so it picks the version from `go.mod`:
+
+```bash
+GOVER=$(awk '/^go /{print $2}' go.mod)
+curl -LO "https://go.dev/dl/go${GOVER}.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "go${GOVER}.linux-amd64.tar.gz"
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+. ~/.profile
+go version
+```
+
+On an ARM64 machine (for example a Raspberry Pi 5), use
+`linux-arm64.tar.gz` instead of `linux-amd64.tar.gz`.
+
+**4. Build**
+
+```bash
+./build.sh
+```
+
+The first build takes a few minutes because it compiles the C graphics code;
+later builds take seconds. When it's done, it prints the size of
+`dist/TroopersTransfer`, which is the whole app.
+
+To stamp a version number into the **About** line and the updater, set
+`VERSION`:
+
+```bash
+VERSION=1.2.0 ./build.sh
+```
+
+**5. Run it**
+
+```bash
+./dist/TroopersTransfer
+```
+
+It behaves exactly like the Windows build. It saves its settings in
+`TroopersTransfer.json` next to the binary, or in
+`~/.config/TroopersTransfer/` if that folder isn't writable. Received files
+go to `~/Downloads/Troopers Transfer` (or your desktop's own Downloads
+folder, if it's set to somewhere else).
+
+You can copy the `TroopersTransfer` file anywhere, such as a USB stick or
+another PC with the same kind of CPU. The other PC doesn't need Go or any
+of the packages above, just a normal desktop with working graphics.
+
+**Optional extras**
+
+Run the same checks as CI before opening a pull request:
+
+```bash
+go vet ./...
+go test ./...
+```
+
+Package it the same way the release does:
+
+```bash
+tar -C dist -czf TroopersTransfer-linux-amd64.tar.gz TroopersTransfer
+sha256sum TroopersTransfer-linux-amd64.tar.gz > TroopersTransfer-linux-amd64.tar.gz.sha256
+```
+
+Add it to your desktop's app menu. Run this from the repo folder after
+building:
+
+```bash
+mkdir -p ~/.local/bin ~/.local/share/applications ~/.local/share/icons
+cp dist/TroopersTransfer ~/.local/bin/
+cp assets/icon.png ~/.local/share/icons/troopers-transfer.png
+cat > ~/.local/share/applications/troopers-transfer.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Troopers Transfer
+Comment=Send files and folders with a three-word code
+Exec=$HOME/.local/bin/TroopersTransfer
+Icon=$HOME/.local/share/icons/troopers-transfer.png
+Categories=Network;FileTransfer;
+Terminal=false
+EOF
+```
+
+When the app runs from `~/.local/bin`, its settings live next to it there.
+
+**Building in WSL**
+
+Building inside WSL on Windows makes a **Linux** program, not a Windows
+`.exe`. It runs in a window on Windows 11 thanks to WSLg, which is handy for
+testing the Linux build. For everyday use on Windows, build with
+`build.ps1` instead. Relay hosting in particular won't work properly from
+inside WSL, because WSL sits behind its own virtual network and your router
+can't forward ports to it.
+
+#### Linux build problems
+
+| What you see | What it means | Fix |
+|---|---|---|
+| `cgo: C compiler "gcc" not found` | No C compiler is installed. | Install `gcc` (step 1). |
+| `fatal error: X11/Xlib.h: No such file or directory`, or the same for `GL/gl.h`, `X11/Xcursor/Xcursor.h`, `X11/extensions/Xrandr.h` and similar | Graphics headers are missing. | Install the step 1 packages for your distro. The missing file name says which one: `GL` is Mesa, `Xcursor` is libXcursor, and so on. |
+| The same error for `wayland-client.h` or `xkbcommon/xkbcommon.h` | The Wayland headers are missing. GLFW 3.4 needs them even if you use X11. | Install `libwayland-dev libxkbcommon-dev` (Debian/Ubuntu), `wayland-devel libxkbcommon-devel` (Fedora) or `wayland libxkbcommon` (Arch). |
+| `go: go.mod requires go >= … (running go …; GOTOOLCHAIN=local)` | Your Go is too old and automatic downloads are switched off. | Run `export GOTOOLCHAIN=auto` and build again, or install the newer Go from step 3. |
+| `go: downloading go…` then a network error | Go couldn't download the version it needs. | Check your internet connection, or install the exact version by hand (step 3). |
+| `build constraints exclude all Go files` mentioning `glfw` or `gl` | cgo is switched off (`CGO_ENABLED=0`). | Use `./build.sh`, which switches it on, or run `export CGO_ENABLED=1`. |
+| `./build.sh: Permission denied` | The script lost its "executable" flag, for example after copying it from a Windows drive. | Run `sh build.sh` instead, or `chmod +x build.sh` once. |
+| It builds, but the window doesn't open: `APIUnavailable`, `GLX: No GLX visuals` or `failed to initialise OpenGL` | There's no working OpenGL. This usually happens in a virtual machine, over SSH, or on a server with no desktop. | Run it on a desktop session. In a VM, switch on 3D acceleration. As a last resort, `LIBGL_ALWAYS_SOFTWARE=1 ./dist/TroopersTransfer` uses software drawing (slower, but it works). |
 
 ### macOS
 

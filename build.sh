@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Builds TroopersTransfer for the current OS (Linux or macOS) into ./dist.
-# Linux needs: gcc libgl1-mesa-dev xorg-dev (Debian/Ubuntu package names).
+# Linux needs: gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev libwayland-dev
+# (Debian/Ubuntu package names; see "Building on Linux" in the README for
+# Fedora and Arch).
 # macOS needs: Xcode command line tools.
 set -eu
 cd "$(dirname "$0")"
